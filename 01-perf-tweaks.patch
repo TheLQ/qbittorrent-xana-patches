@@ -4,19 +4,37 @@ From: Leon Blakey <code@leonblakey.com>
 
 
 ---
- src/base/bittorrent/sessionimpl.cpp |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ src/base/bittorrent/sessionimpl.cpp |   13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
 
 diff --git a/src/base/bittorrent/sessionimpl.cpp b/src/base/bittorrent/sessionimpl.cpp
-index 708258e93..b805bd817 100644
+index 708258e93..efcf9b1b8 100644
 --- a/src/base/bittorrent/sessionimpl.cpp
 +++ b/src/base/bittorrent/sessionimpl.cpp
-@@ -118,7 +118,7 @@ using namespace std::chrono_literals;
+@@ -118,7 +118,12 @@ using namespace std::chrono_literals;
  using namespace BitTorrent;
  
  const Path CATEGORIES_FILE_NAME {u"categories.json"_s};
 -const int MAX_PROCESSING_RESUMEDATA_COUNT = 50;
++/// Default 50. Raised to 50k
++/// Intent is likely not blocking the UI thread with single huge event responses.
++/// As a server we can wait.
++/// With 100,000s of torrents the default takes thousands of slow add torrents calls
++/// In the 500k instance reduces load times from 30+ minutes to 5-ish
 +const int MAX_PROCESSING_RESUMEDATA_COUNT = 50000;
  const std::chrono::seconds FREEDISKSPACE_CHECK_TIMEOUT = 30s;
  
  namespace
+@@ -3224,7 +3229,11 @@ void SessionImpl::saveResumeData()
+     while ((m_numResumeData > 0) || !m_moveStorageQueue.isEmpty() || m_needSaveTorrentsQueue)
+     {
+         const lt::seconds waitTime {5};
+-        const lt::seconds expireTime {30};
++        /// Default 30. Increased to infinity
++        /// Intent is likely hard shutdown limits when the OS is shutting down
++        /// As a server we don't care about responsiveness (usually)
++        /// and prefer to wait
++        const lt::seconds expireTime {999999};
+ 
+         // only terminate when no storage is moving
+         if (timer.hasExpired(lt::total_milliseconds(expireTime)) && m_moveStorageQueue.isEmpty())
