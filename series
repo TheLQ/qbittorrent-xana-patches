@@ -5,3 +5,4 @@ debug-libtor.patch
 perf-tweaks.patch
 perf-resumeload.patch
 lockfile-err.patch
+filter-array.patch
