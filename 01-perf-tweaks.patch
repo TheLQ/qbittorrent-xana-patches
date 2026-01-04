@@ -1,0 +1,22 @@
+Refresh of perf-tweaks
+
+From: Leon Blakey <code@leonblakey.com>
+
+
+---
+ src/base/bittorrent/sessionimpl.cpp |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/base/bittorrent/sessionimpl.cpp b/src/base/bittorrent/sessionimpl.cpp
+index 708258e93..b805bd817 100644
+--- a/src/base/bittorrent/sessionimpl.cpp
++++ b/src/base/bittorrent/sessionimpl.cpp
+@@ -118,7 +118,7 @@ using namespace std::chrono_literals;
+ using namespace BitTorrent;
+ 
+ const Path CATEGORIES_FILE_NAME {u"categories.json"_s};
+-const int MAX_PROCESSING_RESUMEDATA_COUNT = 50;
++const int MAX_PROCESSING_RESUMEDATA_COUNT = 50000;
+ const std::chrono::seconds FREEDISKSPACE_CHECK_TIMEOUT = 30s;
+ 
+ namespace

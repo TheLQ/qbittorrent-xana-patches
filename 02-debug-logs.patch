@@ -1,0 +1,125 @@
+Add debug timers
+
+From: Leon Blakey <code@leonblakey.com>
+
+
+---
+ src/base/bittorrent/bencoderesumedatastorage.cpp |    6 +++++
+ src/webui/api/synccontroller.cpp                 |   25 +++++++++++++++++++++-
+ src/webui/webapplication.cpp                     |    8 ++++++-
+ 3 files changed, 37 insertions(+), 2 deletions(-)
+
+diff --git a/src/base/bittorrent/bencoderesumedatastorage.cpp b/src/base/bittorrent/bencoderesumedatastorage.cpp
+index ee87b5601..dcb6cddd5 100644
+--- a/src/base/bittorrent/bencoderesumedatastorage.cpp
++++ b/src/base/bittorrent/bencoderesumedatastorage.cpp
+@@ -189,6 +189,9 @@ void BitTorrent::BencodeResumeDataStorage::loadQueue(const Path &queueFilename)
+         return;
+     }
+ 
++    QElapsedTimer calcTimer;
++    calcTimer.start();
++
+     QHash<TorrentID, qsizetype> registeredTorrentsIndexes;
+     registeredTorrentsIndexes.reserve(m_registeredTorrents.length());
+     for (qsizetype i = 0; i < m_registeredTorrents.length(); ++i)
+@@ -218,6 +221,9 @@ void BitTorrent::BencodeResumeDataStorage::loadQueue(const Path &queueFilename)
+             }
+         }
+     }
++
++    auto calcMSec = calcTimer.elapsed();
++    LogMsg(tr("QueueFile load time %1 ms").arg(calcMSec), Log::WARNING);
+ }
+ 
+ BitTorrent::LoadResumeDataResult BitTorrent::BencodeResumeDataStorage::loadTorrentResumeData(const QByteArray &data, const QByteArray &metadata) const
+diff --git a/src/webui/api/synccontroller.cpp b/src/webui/api/synccontroller.cpp
+index a68a7fce2..683b1f709 100644
+--- a/src/webui/api/synccontroller.cpp
++++ b/src/webui/api/synccontroller.cpp
+@@ -44,6 +44,7 @@
+ #include "base/bittorrent/torrentinfo.h"
+ #include "base/bittorrent/trackerentrystatus.h"
+ #include "base/global.h"
++#include "base/logger.h"
+ #include "base/net/geoipmanager.h"
+ #include "base/preferences.h"
+ #include "base/utils/string.h"
+@@ -374,6 +375,8 @@ namespace
+ 
+     QJsonObject generateSyncData(int acceptedResponseId, const QVariantMap &data, QVariantMap &lastAcceptedData, QVariantMap &lastData)
+     {
++        QElapsedTimer calcTimer;
++        calcTimer.start();
+         QVariantMap syncData;
+         bool fullUpdate = true;
+         const int lastResponseId = (acceptedResponseId > 0) ? lastData[KEY_RESPONSE_ID].toInt() : 0;
+@@ -405,7 +408,16 @@ namespace
+         lastData[KEY_RESPONSE_ID] = responseId;
+         syncData[KEY_RESPONSE_ID] = responseId;
+ 
+-        return QJsonObject::fromVariantMap(syncData);
++        auto calcSecs = calcTimer.elapsed() / 1000;
++
++        QElapsedTimer jsonTimer;
++        jsonTimer.start();
++        QJsonObject result = QJsonObject::fromVariantMap(syncData);
++        auto jsonSecs = jsonTimer.elapsed() / 1000;
++
++        LogMsg(QObject::tr("PeerData timer generate %1 json %2").arg(calcSecs).arg(jsonSecs), Log::WARNING);
++
++        return result;
+     }
+ 
+     void addAnnounceStats(QVariantMap &serializedTorrent, const BitTorrent::Torrent *torrent)
+@@ -622,6 +634,9 @@ void SyncController::makeMaindataSnapshot()
+ 
+ QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fullUpdate)
+ {
++    QElapsedTimer calcTimer;
++    calcTimer.start();
++
+     // if need to update existing sync data
+     for (const QString &category : asConst(m_updatedCategories))
+         m_maindataSyncBuf.removedCategories.removeOne(category);
+@@ -778,6 +793,10 @@ QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fu
+         m_maindataSnapshot.serverState = serverState;
+     }
+ 
++    auto calcSecs = calcTimer.elapsed() / 1000;
++    QElapsedTimer jsonBuildTimer;
++    jsonBuildTimer.start();
++
+     QJsonObject syncData;
+     syncData[KEY_RESPONSE_ID] = id;
+     if (fullUpdate)
+@@ -824,6 +843,10 @@ QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fu
+     if (!m_maindataSyncBuf.serverState.isEmpty())
+         syncData[KEY_SERVER_STATE] = QJsonObject::fromVariantMap(m_maindataSyncBuf.serverState);
+ 
++    auto jsonBuildSecs = jsonBuildTimer.elapsed() / 1000;
++    
++    LogMsg(QObject::tr("Maindata timer generate %1 jsonbuild %2").arg(calcSecs).arg(jsonBuildSecs), Log::WARNING);
++
+     return syncData;
+ }
+ 
+diff --git a/src/webui/webapplication.cpp b/src/webui/webapplication.cpp
+index c6de1586e..058bf8280 100644
+--- a/src/webui/webapplication.cpp
++++ b/src/webui/webapplication.cpp
+@@ -369,7 +369,13 @@ void WebApplication::doProcessRequest(const bool isUsingApiKey)
+             switch (result.data.userType())
+             {
+             case QMetaType::QJsonDocument:
+-                print(result.data.toJsonDocument().toJson(QJsonDocument::Compact), Http::CONTENT_TYPE_JSON);
++                {
++                    QElapsedTimer stringTimer;
++                    stringTimer.start();
++                    print(result.data.toJsonDocument().toJson(QJsonDocument::Compact), Http::CONTENT_TYPE_JSON);
++                    auto stringSecs = stringTimer.elapsed() / 1000;
++                    LogMsg(tr("JSON stringify %1").arg(stringSecs), Log::WARNING);
++                }
+                 break;
+             case QMetaType::QByteArray:
+                 {
