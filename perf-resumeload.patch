@@ -1,0 +1,22 @@
+maybe perf: larger reserve buffer. idk this is live pulled off the event queue. needs logging
+
+From: Leon Blakey <code@leonblakey.com>
+
+
+---
+ src/base/bittorrent/resumedatastorage.cpp |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/base/bittorrent/resumedatastorage.cpp b/src/base/bittorrent/resumedatastorage.cpp
+index e74ec1123..ed5cb1a64 100644
+--- a/src/base/bittorrent/resumedatastorage.cpp
++++ b/src/base/bittorrent/resumedatastorage.cpp
+@@ -50,7 +50,7 @@ Path BitTorrent::ResumeDataStorage::path() const
+ 
+ void BitTorrent::ResumeDataStorage::loadAll() const
+ {
+-    m_loadedResumeData.reserve(1024);
++    m_loadedResumeData.reserve(50000);
+ 
+     auto *loadingThread = QThread::create([this]()
+     {
