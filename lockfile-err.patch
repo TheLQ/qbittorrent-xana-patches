@@ -8,11 +8,13 @@ From: Leon Blakey <code@leonblakey.com>
  src/app/application.h                     |    1 +
  src/app/applicationinstancemanager.cpp    |    5 +++++
  src/app/applicationinstancemanager.h      |    1 +
+ src/app/filelogger.cpp                    |    6 ++++--
  src/app/main.cpp                          |    5 +++++
  src/app/qtlocalpeer/qtlocalpeer.cpp       |   15 +++++++++++++--
  src/app/qtlocalpeer/qtlocalpeer.h         |    1 +
  src/app/qtlocalpeer/qtlockedfile_unix.cpp |    2 +-
- 8 files changed, 32 insertions(+), 3 deletions(-)
+ src/base/profile_p.cpp                    |   27 ++++++++++++++++++++++++++-
+ 10 files changed, 62 insertions(+), 6 deletions(-)
 
 diff --git a/src/app/application.cpp b/src/app/application.cpp
 index 8955ceed5..4732dca72 100644
@@ -70,6 +72,23 @@ index 236696911..2afb5dbf7 100644
  
  public slots:
      bool sendMessage(const QString &message, int timeout = 5000);
+diff --git a/src/app/filelogger.cpp b/src/app/filelogger.cpp
+index 4c83c16a1..8a88a5077 100644
+--- a/src/app/filelogger.cpp
++++ b/src/app/filelogger.cpp
+@@ -177,8 +177,10 @@ void FileLogger::openLogFile()
+ {
+     if (!m_logFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
+     {
+-        LogMsg(tr("An error occurred while trying to open the log file. Logging to file is disabled. File: \"%1\". Error: \"%2\".")
+-            .arg(m_logFile.fileName(), m_logFile.errorString()), Log::CRITICAL);
++        auto msg = tr("An error occurred while trying to open the log file. Logging to file is disabled. File: \"%1\". Error: \"%2\".")
++            .arg(m_logFile.fileName(), m_logFile.errorString());
++        qCritical().noquote() << msg;
++        LogMsg(msg, Log::CRITICAL);
+         return;
+     }
+ 
 diff --git a/src/app/main.cpp b/src/app/main.cpp
 index 21730827f..0b4a44b07 100644
 --- a/src/app/main.cpp
@@ -158,3 +177,49 @@ index 915bd0f49..69714737f 100644
          return false;
      }
  
+diff --git a/src/base/profile_p.cpp b/src/base/profile_p.cpp
+index 1f94af6a2..837628254 100644
+--- a/src/base/profile_p.cpp
++++ b/src/base/profile_p.cpp
+@@ -27,7 +27,10 @@
+  * exception statement from your version.
+  */
+ 
++#include "global.h"
++#include "logger.h"
+ #include "profile_p.h"
++#include "exceptions.h"
+ 
+ #include <QCoreApplication>
+ 
+@@ -177,7 +180,29 @@ std::unique_ptr<QSettings> Private::CustomProfile::applicationSettings(const QSt
+     const auto CONF_FILE_EXTENSION = u".conf"_s;
+ #endif
+     const Path settingsFilePath = configLocation() / Path(name + CONF_FILE_EXTENSION);
+-    return std::make_unique<QSettings>(settingsFilePath.data(), QSettings::IniFormat);
++    auto settings = std::make_unique<QSettings>(settingsFilePath.data(), QSettings::IniFormat);
++
++    qCritical() <<" loading settings " << name;
++    if (1+1==2) {
++        throw RuntimeError(QCoreApplication::tr("Working settings??"));
++    }
++    switch (settings->status())
++    {
++    case QSettings::NoError:
++        qCritical() << QCoreApplication::tr("Working settings??");
++        break;
++    case QSettings::AccessError:
++        qCritical() << QCoreApplication::tr("An access error occurred while trying to write the configuration file.");
++        break;
++    case QSettings::FormatError:
++        qCritical() << QCoreApplication::tr("A format error occurred while trying to write the configuration file.");
++        break;
++    default:
++        qCritical() << QCoreApplication::tr("An unknown error occurred while trying to write the configuration file");
++        break;
++    }
++
++    return settings;
+ }
+ 
+ Path Private::NoConvertConverter::fromPortablePath(const Path &portablePath) const
