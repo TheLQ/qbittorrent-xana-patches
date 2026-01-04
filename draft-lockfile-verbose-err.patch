@@ -1,0 +1,118 @@
+From 2f06874ed0f397b4bf515457178190acfc74eab1 Mon Sep 17 00:00:00 2001
+From: Leon Blakey <code@leonblakey.com>
+Date: Thu, 9 Oct 2025 07:00:35 -0700
+Subject: [PATCH] lockfile: drag state everywhere
+
+---
+ src/app/application.cpp                | 5 +++++
+ src/app/application.h                  | 1 +
+ src/app/applicationinstancemanager.cpp | 5 +++++
+ src/app/applicationinstancemanager.h   | 1 +
+ src/app/main.cpp                       | 5 +++++
+ src/app/qtlocalpeer/qtlocalpeer.cpp    | 5 +++++
+ src/app/qtlocalpeer/qtlocalpeer.h      | 1 +
+ 7 files changed, 23 insertions(+)
+
+diff --git a/src/app/application.cpp b/src/app/application.cpp
+index 0cc5dda46..9d8ed0869 100644
+--- a/src/app/application.cpp
++++ b/src/app/application.cpp
+@@ -1013,6 +1013,11 @@ bool Application::hasAnotherInstance() const
+     return !m_instanceManager->isFirstInstance();
+ }
+ 
++// bool Application::instanceCheckFailed() const
++// {
++//     return m_instanceManager->instanceCheckFailed();
++// }
++
+ #ifndef DISABLE_GUI
+ void Application::createStartupProgressDialog()
+ {
+diff --git a/src/app/application.h b/src/app/application.h
+index ca683fbff..d80fd872b 100644
+--- a/src/app/application.h
++++ b/src/app/application.h
+@@ -102,6 +102,7 @@ public:
+     int exec();
+ 
+     bool hasAnotherInstance() const;
++    // bool instanceCheckFailed() const;
+     bool callMainInstance();
+     const QBtCommandLineParameters &commandLineArgs() const;
+ 
+diff --git a/src/app/applicationinstancemanager.cpp b/src/app/applicationinstancemanager.cpp
+index 26001724a..6a96b1a3d 100644
+--- a/src/app/applicationinstancemanager.cpp
++++ b/src/app/applicationinstancemanager.cpp
+@@ -79,6 +79,11 @@ bool ApplicationInstanceManager::isFirstInstance() const
+     return m_isFirstInstance;
+ }
+ 
++// bool ApplicationInstanceManager::instanceCheckFailed() const
++// {
++//     return !m_peer.isOpened();
++// }
++
+ bool ApplicationInstanceManager::sendMessage(const QString &message, const int timeout)
+ {
+     return m_peer->sendMessage(message, timeout);
+diff --git a/src/app/applicationinstancemanager.h b/src/app/applicationinstancemanager.h
+index 236696911..2afb5dbf7 100644
+--- a/src/app/applicationinstancemanager.h
++++ b/src/app/applicationinstancemanager.h
+@@ -43,6 +43,7 @@ public:
+     explicit ApplicationInstanceManager(const Path &instancePath, QObject *parent = nullptr);
+ 
+     bool isFirstInstance() const;
++    // bool instanceCheckFailed() const;
+ 
+ public slots:
+     bool sendMessage(const QString &message, int timeout = 5000);
+diff --git a/src/app/main.cpp b/src/app/main.cpp
+index 21730827f..0b4a44b07 100644
+--- a/src/app/main.cpp
++++ b/src/app/main.cpp
+@@ -226,6 +226,11 @@ int main(int argc, char *argv[])
+         // Check if qBittorrent is already running
+         if (app->hasAnotherInstance())
+         {
++            // if (app->instanceCheckFailed()) {
++            //     const QString message = QCoreApplication::translate("Main", "Failed to open lock file");
++            //     printf("%s\n", qUtf8Printable(message));
++            // }
++
+ #if defined(DISABLE_GUI) && !defined(Q_OS_WIN)
+             if (params.shouldDaemonize)
+             {
+diff --git a/src/app/qtlocalpeer/qtlocalpeer.cpp b/src/app/qtlocalpeer/qtlocalpeer.cpp
+index cc97eb464..6c2ca783b 100644
+--- a/src/app/qtlocalpeer/qtlocalpeer.cpp
++++ b/src/app/qtlocalpeer/qtlocalpeer.cpp
+@@ -113,6 +113,11 @@ QtLocalPeer::~QtLocalPeer()
+     }
+ }
+ 
++// bool QtLocalPeer::isOpened()
++// {
++//     return m_lockFile.isOpen();
++// }
++
+ bool QtLocalPeer::isClient()
+ {
+     if (m_lockFile.isLocked())
+diff --git a/src/app/qtlocalpeer/qtlocalpeer.h b/src/app/qtlocalpeer/qtlocalpeer.h
+index 9dd1cc395..87d9af1e9 100644
+--- a/src/app/qtlocalpeer/qtlocalpeer.h
++++ b/src/app/qtlocalpeer/qtlocalpeer.h
+@@ -84,6 +84,7 @@ public:
+     ~QtLocalPeer() override;
+ 
+     bool isClient();
++    // bool isOpened();
+     bool sendMessage(const QString &message, int timeout);
+ 
+ signals:
+-- 
+2.51.0
+
