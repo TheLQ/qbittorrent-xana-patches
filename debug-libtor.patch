@@ -1,0 +1,71 @@
+debug: enable libtorrent internal logs
+
+From: Leon Blakey <code@leonblakey.com>
+
+
+---
+ src/base/bittorrent/sessionimpl.cpp |   23 ++++++++++++++++++++++-
+ src/base/bittorrent/sessionimpl.h   |    2 ++
+ 2 files changed, 24 insertions(+), 1 deletion(-)
+
+diff --git a/src/base/bittorrent/sessionimpl.cpp b/src/base/bittorrent/sessionimpl.cpp
+index d741cb4c4..82607406b 100644
+--- a/src/base/bittorrent/sessionimpl.cpp
++++ b/src/base/bittorrent/sessionimpl.cpp
+@@ -1874,7 +1874,9 @@ lt::settings_pack SessionImpl::loadLTSettings() const
+         | lt::alert::port_mapping_notification
+         | lt::alert::status_notification
+         | lt::alert::storage_notification
+-        | lt::alert::tracker_notification;
++        | lt::alert::tracker_notification
++        | lt::alert::session_log_notification
++        | lt::alert::torrent_log_notification;
+     settingsPack.set_int(lt::settings_pack::alert_mask, alertMask);
+ 
+     settingsPack.set_int(lt::settings_pack::connection_speed, connectionSpeed());
+@@ -5922,6 +5924,12 @@ void SessionImpl::handleAlert(lt::alert *alert)
+             handleTorrentConflictAlert(static_cast<const lt::torrent_conflict_alert *>(alert));
+             break;
+ #endif
++        case lt::log_alert::alert_type:
++            handleSessionLogAlert(static_cast<const lt::log_alert *>(alert));
++            break;
++        case lt::torrent_log_alert::alert_type:
++            handleTorrentLogAlert(static_cast<const lt::torrent_log_alert *>(alert));
++            break;
+         }
+     }
+     catch (const std::exception &exc)
+@@ -6544,6 +6552,19 @@ void SessionImpl::handlePerformanceAlert(const lt::performance_alert *alert) con
+             , u"https://libtorrent.org/reference-Alerts.html#enum-performance-warning-t"_s)), Log::INFO);
+ }
+ 
++void SessionImpl::handleSessionLogAlert(const lt::log_alert *alert) const
++{
++    
++    // LogMsg(tr("[lt-sess] %1").arg(QString::fromStdString(alert->message())), Log::NORMAL);
++    qDebug() << "[lt-sess] " << QString::fromStdString(alert->message());
++}
++
++void SessionImpl::handleTorrentLogAlert(const lt::torrent_log_alert *alert) const
++{
++    // LogMsg(tr("[lt-tor] %1").arg(QString::fromStdString(alert->message())), Log::NORMAL);
++    qDebug() << "[lt-tor] " << QString::fromStdString(alert->message());
++}
++
+ void SessionImpl::saveStatistics() const
+ {
+     if (!m_isStatisticsDirty)
+diff --git a/src/base/bittorrent/sessionimpl.h b/src/base/bittorrent/sessionimpl.h
+index bd2c836ca..10bfc6c29 100644
+--- a/src/base/bittorrent/sessionimpl.h
++++ b/src/base/bittorrent/sessionimpl.h
+@@ -612,6 +612,8 @@ namespace BitTorrent
+         void handleFileRenamedAlert(const lt::file_renamed_alert *alert);
+         void handleFileRenameFailedAlert(const lt::file_rename_failed_alert *alert);
+         void handlePerformanceAlert(const lt::performance_alert *alert) const;
++        void handleSessionLogAlert(const lt::log_alert *alert) const;
++        void handleTorrentLogAlert(const lt::torrent_log_alert *alert) const;
+         void handleSaveResumeDataAlert(lt::save_resume_data_alert *alert);
+         void handleSaveResumeDataFailedAlert(const lt::save_resume_data_failed_alert *alert);
+         void handleTorrentCheckedAlert(const lt::torrent_checked_alert *alert);

@@ -8,7 +8,7 @@ From: Leon Blakey <code@leonblakey.com>
  1 file changed, 11 insertions(+), 2 deletions(-)
 
 diff --git a/src/base/bittorrent/sessionimpl.cpp b/src/base/bittorrent/sessionimpl.cpp
-index 708258e93..efcf9b1b8 100644
+index 82607406b..b69de9bc3 100644
 --- a/src/base/bittorrent/sessionimpl.cpp
 +++ b/src/base/bittorrent/sessionimpl.cpp
 @@ -118,7 +118,12 @@ using namespace std::chrono_literals;
@@ -25,7 +25,7 @@ index 708258e93..efcf9b1b8 100644
  const std::chrono::seconds FREEDISKSPACE_CHECK_TIMEOUT = 30s;
  
  namespace
-@@ -3224,7 +3229,11 @@ void SessionImpl::saveResumeData()
+@@ -3245,7 +3250,11 @@ void SessionImpl::saveResumeData()
      while ((m_numResumeData > 0) || !m_moveStorageQueue.isEmpty() || m_needSaveTorrentsQueue)
      {
          const lt::seconds waitTime {5};

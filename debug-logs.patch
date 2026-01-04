@@ -5,9 +5,10 @@ From: Leon Blakey <code@leonblakey.com>
 
 ---
  src/base/bittorrent/bencoderesumedatastorage.cpp |    6 +++++
+ src/base/bittorrent/sessionimpl.cpp              |   21 ++++++++++++++++++
  src/webui/api/synccontroller.cpp                 |   25 +++++++++++++++++++++-
  src/webui/webapplication.cpp                     |    8 ++++++-
- 3 files changed, 37 insertions(+), 2 deletions(-)
+ 4 files changed, 57 insertions(+), 3 deletions(-)
 
 diff --git a/src/base/bittorrent/bencoderesumedatastorage.cpp b/src/base/bittorrent/bencoderesumedatastorage.cpp
 index ee87b5601..dcb6cddd5 100644
@@ -33,6 +34,67 @@ index ee87b5601..dcb6cddd5 100644
  }
  
  BitTorrent::LoadResumeDataResult BitTorrent::BencodeResumeDataStorage::loadTorrentResumeData(const QByteArray &data, const QByteArray &metadata) const
+diff --git a/src/base/bittorrent/sessionimpl.cpp b/src/base/bittorrent/sessionimpl.cpp
+index 708258e93..d741cb4c4 100644
+--- a/src/base/bittorrent/sessionimpl.cpp
++++ b/src/base/bittorrent/sessionimpl.cpp
+@@ -1421,6 +1421,10 @@ void SessionImpl::prepareStartup()
+         }
+ 
+         emit startupProgressUpdated((context->finishedResumeDataCount * 100.) / context->totalResumeDataCount);
++
++        if (context->finishedResumeDataCount % 10000 == 0) {
++            LogMsg(tr("Finished %1").arg(context->finishedResumeDataCount), Log::WARNING);
++        }
+     });
+ 
+     context->startupStorage->loadAll();
+@@ -1430,7 +1434,12 @@ void SessionImpl::handleLoadedResumeData(ResumeSessionContext *context)
+ {
+     context->isLoadedResumeDataHandlingEnqueued = false;
+ 
++    // ???
++    // this is the active count between loaded, (this) importing into libtorrent, and UI alert?
+     int count = context->processingResumeDataCount;
++    // Resume loading each file is on a different thread
++    // We then rapidly (spinlocking?) poll latest files from it. 20, 40, 50 at a time
++    // so MAX_PROCESSING_RESUMEDATA can be infinite, it doesn't matter
+     while (context->processingResumeDataCount < MAX_PROCESSING_RESUMEDATA_COUNT)
+     {
+         if (context->loadedResumeData.isEmpty())
+@@ -1446,6 +1455,7 @@ void SessionImpl::handleLoadedResumeData(ResumeSessionContext *context)
+                 }
+                 else if (!context->isLoadedResumeDataHandlingEnqueued)
+                 {
++                    LogMsg(tr("empty, requing"), Log::WARNING);
+                     QMetaObject::invokeMethod(this, [this, context]() { handleLoadedResumeData(context); }, Qt::QueuedConnection);
+                     context->isLoadedResumeDataHandlingEnqueued = true;
+                 }
+@@ -1453,6 +1463,10 @@ void SessionImpl::handleLoadedResumeData(ResumeSessionContext *context)
+ 
+             break;
+         }
++        // LogMsg(tr("fetch resume for %1 total %2").arg(context->loadedResumeData.length()).arg(context->processingResumeDataCount));
++        if (context->processingResumeDataCount % 10000 == 0) {
++            LogMsg(tr("Resume count %1").arg(context->processingResumeDataCount), Log::WARNING);
++        }
+ 
+         processNextResumeData(context);
+         ++count;
+@@ -1630,7 +1644,12 @@ void SessionImpl::processNextResumeData(ResumeSessionContext *context)
+             Torrent *torrent = createTorrent(alert->handle, std::move(resumeData));
+             m_loadedTorrents.append(torrent);
+ 
+-            LogMsg(tr("Restored torrent. Torrent: \"%1\"").arg(torrent->name()));
++            auto total = m_torrents.size();
++            if (total % 10000 == 0) {
++                LogMsg(tr("Loaded torrent count %1").arg(total), Log::WARNING);
++            }
++
++            // LogMsg(tr("Restored torrent. Torrent: \"%1\"").arg(torrent->name()));
+         }
+     });
+ 
 diff --git a/src/webui/api/synccontroller.cpp b/src/webui/api/synccontroller.cpp
 index a68a7fce2..683b1f709 100644
 --- a/src/webui/api/synccontroller.cpp
