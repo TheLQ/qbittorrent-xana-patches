@@ -161,33 +161,6 @@ index 683b1f709..c2b2dadb2 100644
  {
      m_knownTrackers.clear();
      m_maindataAcceptedID = 0;
-@@ -621,7 +622,7 @@ void SyncController::makeMaindataSnapshot()
-     for (const Tag &tag : asConst(session->tags()))
-         m_maindataSnapshot.tags.append(tag.toString());
- 
--    for (const auto &[tracker, torrentIDs] : asConst(m_knownTrackers).asKeyValueRange())
-+    for (const auto &[tracker, torrentIDs] : m_knownTrackers.asKeyValueRange())
-         m_maindataSnapshot.trackers[tracker] = asStrings(torrentIDs);
- 
-     m_maindataSnapshot.serverState = getTransferInfo();
-@@ -632,7 +633,7 @@ void SyncController::makeMaindataSnapshot()
-     m_maindataSnapshot.serverState[KEY_SYNC_MAINDATA_USE_SUBCATEGORIES] = session->isSubcategoriesEnabled();
- }
- 
--QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fullUpdate)
-+QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fullUpdate, const QList<QString> &torrentFields)
- {
-     QElapsedTimer calcTimer;
-     calcTimer.start();
-@@ -844,7 +845,7 @@ QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fu
-         syncData[KEY_SERVER_STATE] = QJsonObject::fromVariantMap(m_maindataSyncBuf.serverState);
- 
-     auto jsonBuildSecs = jsonBuildTimer.elapsed() / 1000;
--    
-+
-     LogMsg(QObject::tr("Maindata timer generate %1 jsonbuild %2").arg(calcSecs).arg(jsonBuildSecs), Log::WARNING);
- 
-     return syncData;
 diff --git a/src/webui/api/synccontroller.h b/src/webui/api/synccontroller.h
 index 9d7009c00..f0d629a1a 100644
 --- a/src/webui/api/synccontroller.h
@@ -266,11 +239,11 @@ index 99186ac9b..0aae61d5f 100644
          };
  
 -        std::ranges::sort(torrentList
-+         if (fields.isEmpty()) {
-+            if (!torrentList[0].toMap().contains(sortedColumn))
-+                throw APIError(APIErrorType::BadParams, tr("'sort' parameter is invalid"));
++        if (fields.isEmpty()) {
++           if (!torrentList[0].toMap().contains(sortedColumn))
++               throw APIError(APIErrorType::BadParams, tr("'sort' parameter is invalid"));
 +
-+                std::sort(torrentList.begin(), torrentList.end()
++        std::sort(torrentList.begin(), torrentList.end()
              , [reverse, &sortedColumn, &lessThan](const QVariant &torrent1, const QVariant &torrent2)
          {
              const QVariant value1 {torrent1.toMap().value(sortedColumn)};
@@ -298,33 +271,3 @@ index 99186ac9b..0aae61d5f 100644
      }
  
      const qsizetype size = torrentList.size();
-@@ -931,7 +966,8 @@ void TorrentsController::filesAction()
-         const int filesCount = torrent->filesCount();
-         const QStringList indexStrings = idxIt.value().split(u'|');
-         fileIndexes.reserve(indexStrings.size());
--        for (const QString &indexString : indexStrings)
-+        std::transform(indexStrings.cbegin(), indexStrings.cend(), std::back_inserter(fileIndexes)
-+                       , [&filesCount](const QString &indexString) -> int
-         {
-             bool ok = false;
-             const int index = indexString.toInt(&ok);
-@@ -939,8 +975,8 @@ void TorrentsController::filesAction()
-                 throw APIError(APIErrorType::Conflict, tr("\"%1\" is not a valid file index.").arg(indexString));
-             if (index >= filesCount)
-                 throw APIError(APIErrorType::Conflict, tr("Index %1 is out of bounds.").arg(indexString));
--            fileIndexes.push_back(index);
--        }
-+            return index;
-+        });
-     }
- 
-     QJsonArray fileList = getFiles(torrent, fileIndexes);
-@@ -1347,7 +1383,7 @@ void TorrentsController::addPeersAction()
- 
-     applyToTorrents(hashes, [peers, peerList, &results](BitTorrent::Torrent *const torrent)
-     {
--        const int peersAdded = std::ranges::count_if(peerList, [torrent](const BitTorrent::PeerAddress &peer)
-+        const int peersAdded = std::count_if(peerList.cbegin(), peerList.cend(), [torrent](const BitTorrent::PeerAddress &peer)
-         {
-             return torrent->connectPeer(peer);
-         });
