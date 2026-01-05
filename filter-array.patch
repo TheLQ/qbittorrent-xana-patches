@@ -6,10 +6,10 @@ From: Leon Blakey <code@leonblakey.com>
 ---
  src/webui/api/serialize/serialize_torrent.cpp |  103 +++++++++++++++++++++++++
  src/webui/api/serialize/serialize_torrent.h   |    1 
- src/webui/api/synccontroller.cpp              |   13 ++-
+ src/webui/api/synccontroller.cpp              |    9 +-
  src/webui/api/synccontroller.h                |    4 -
- src/webui/api/torrentscontroller.cpp          |   64 ++++++++++++----
- 5 files changed, 163 insertions(+), 22 deletions(-)
+ src/webui/api/torrentscontroller.cpp          |   55 +++++++++++--
+ 5 files changed, 156 insertions(+), 16 deletions(-)
 
 diff --git a/src/webui/api/serialize/serialize_torrent.cpp b/src/webui/api/serialize/serialize_torrent.cpp
 index 1a64bd797..f54465ce8 100644
@@ -132,7 +132,7 @@ index 6f57a9940..dae2112ed 100644
  QVariantMap serialize(const BitTorrent::Torrent &torrent);
 +QVariantList serialize_array(const BitTorrent::Torrent &torrent, const QList<QString> &fields);
 diff --git a/src/webui/api/synccontroller.cpp b/src/webui/api/synccontroller.cpp
-index 683b1f709..c2b2dadb2 100644
+index fc150c0a3..22af14ff0 100644
 --- a/src/webui/api/synccontroller.cpp
 +++ b/src/webui/api/synccontroller.cpp
 @@ -535,9 +535,10 @@ void SyncController::updateFreeDiskSpace(const qint64 freeDiskSpace)
@@ -161,6 +161,15 @@ index 683b1f709..c2b2dadb2 100644
  {
      m_knownTrackers.clear();
      m_maindataAcceptedID = 0;
+@@ -632,7 +633,7 @@ void SyncController::makeMaindataSnapshot()
+     m_maindataSnapshot.serverState[KEY_SYNC_MAINDATA_USE_SUBCATEGORIES] = session->isSubcategoriesEnabled();
+ }
+ 
+-QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fullUpdate)
++QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fullUpdate, const QList<QString> &torrentFields)
+ {
+     QElapsedTimer calcTimer;
+     calcTimer.start();
 diff --git a/src/webui/api/synccontroller.h b/src/webui/api/synccontroller.h
 index 9d7009c00..f0d629a1a 100644
 --- a/src/webui/api/synccontroller.h
@@ -177,7 +186,7 @@ index 9d7009c00..f0d629a1a 100644
      void onCategoryAdded(const QString &categoryName);
      void onCategoryRemoved(const QString &categoryName);
 diff --git a/src/webui/api/torrentscontroller.cpp b/src/webui/api/torrentscontroller.cpp
-index 99186ac9b..0aae61d5f 100644
+index 99186ac9b..9c41a5e0a 100644
 --- a/src/webui/api/torrentscontroller.cpp
 +++ b/src/webui/api/torrentscontroller.cpp
 @@ -554,6 +554,7 @@ void TorrentsController::countAction()
@@ -239,11 +248,11 @@ index 99186ac9b..0aae61d5f 100644
          };
  
 -        std::ranges::sort(torrentList
-+        if (fields.isEmpty()) {
-+           if (!torrentList[0].toMap().contains(sortedColumn))
-+               throw APIError(APIErrorType::BadParams, tr("'sort' parameter is invalid"));
++         if (fields.isEmpty()) {
++            if (!torrentList[0].toMap().contains(sortedColumn))
++                throw APIError(APIErrorType::BadParams, tr("'sort' parameter is invalid"));
 +
-+        std::sort(torrentList.begin(), torrentList.end()
++                std::sort(torrentList.begin(), torrentList.end()
              , [reverse, &sortedColumn, &lessThan](const QVariant &torrent1, const QVariant &torrent2)
          {
              const QVariant value1 {torrent1.toMap().value(sortedColumn)};

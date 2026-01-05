@@ -96,7 +96,7 @@ index 708258e93..d741cb4c4 100644
      });
  
 diff --git a/src/webui/api/synccontroller.cpp b/src/webui/api/synccontroller.cpp
-index a68a7fce2..683b1f709 100644
+index a68a7fce2..fc150c0a3 100644
 --- a/src/webui/api/synccontroller.cpp
 +++ b/src/webui/api/synccontroller.cpp
 @@ -44,6 +44,7 @@
@@ -160,7 +160,7 @@ index a68a7fce2..683b1f709 100644
          syncData[KEY_SERVER_STATE] = QJsonObject::fromVariantMap(m_maindataSyncBuf.serverState);
  
 +    auto jsonBuildSecs = jsonBuildTimer.elapsed() / 1000;
-+    
++
 +    LogMsg(QObject::tr("Maindata timer generate %1 jsonbuild %2").arg(calcSecs).arg(jsonBuildSecs), Log::WARNING);
 +
      return syncData;
