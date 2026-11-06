@@ -1,3 +1,9 @@
 [submodule "qBittorrent"]
 	path = qBittorrent
 	url = https://github.com/qbittorrent/qBittorrent/
+[submodule "libtorrent"]
+	path = libtorrent
+	url = https://github.com/arvidn/libtorrent
+[submodule "upstream-libtorrent"]
+	path = upstream-libtorrent
+	url = https://github.com/arvidn/libtorrent
