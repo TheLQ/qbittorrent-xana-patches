@@ -1,10 +1,10 @@
-From 4f9ce69c9521c8f9587ef04b6de864d5271fde13 Mon Sep 17 00:00:00 2001
+xana: cmake builder
+
 From: Leon Blakey <code@leonblakey.com>
-Date: Mon, 2 Nov 2026 22:17:39 -0800
-Subject: [PATCH 02/11] xana: cmake builder
+
 
 ---
- cmake-variants.yaml | 22 ++++++++++++++++++++++
+ cmake-variants.yaml |   22 ++++++++++++++++++++++
  1 file changed, 22 insertions(+)
  create mode 100644 cmake-variants.yaml
 
@@ -36,6 +36,3 @@ index 000000000..01d1435aa
 +#     debug:
 +#       short: debug
 +#       buildType: debug
--- 
-2.55.0
-

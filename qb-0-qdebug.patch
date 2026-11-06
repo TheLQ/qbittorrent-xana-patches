@@ -8,7 +8,7 @@ From: Leon Blakey <code@leonblakey.com>
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/cmake/Modules/CommonConfig.cmake b/cmake/Modules/CommonConfig.cmake
-index b66019fd6..06a631620 100644
+index 42dfc0de5..de0f99cd2 100644
 --- a/cmake/Modules/CommonConfig.cmake
 +++ b/cmake/Modules/CommonConfig.cmake
 @@ -28,7 +28,8 @@ target_compile_definitions(qbt_common_cfg INTERFACE
