@@ -1,9 +1,9 @@
 # This series applies on Git commit 0c17d91d6326f86e0de0df02651bfa135530ec60
 qb-0-vscode.patch
-debug-build.patch
-debug-logs.patch
-debug-libtor.patch
-perf-tweaks.patch
-perf-resumeload.patch
-lockfile-err.patch
-filter-array.patch
+qb-0-qdebug.patch
+qb-events-timers.patch
+qb-events-lt.patch
+qb-perf-exit-expire.patch
+qb-perf-huge-resume.patch
+qb-lockfile-err.patch
+qb-serialize-array-torrent.patch
