@@ -20,6 +20,15 @@ worklt-export:
     mv work-ltexport/series libtorrent.series
     rm -r work-ltexport
 
+#
+
+workqb-recreate:
+    rm -rf work-qbittorrent || true
+    git clone qBittorrent work-qbittorrent
+    cd work-qbittorrent && git checkout '0c17d91d6326f86e0de0df02651bfa135530ec60'
+    cd work-qbittorrent && git switch -c xpbranch
+    cd work-qbittorrent && stg import --series ../qbittorrent.series --stripname
+
 # to extract commit
 # git format-patch HEAD^^^
 # git apply
