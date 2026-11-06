@@ -1,8 +1,10 @@
+rejust := just_executable() + " --justfile " + justfile()
 
 default:
-    @just --list
+    {{ rejust }} --list
 
 uplt-bump:
+    cd upstream-libtorrent && {{ rejust }} _require_branch RC_2_0
     cd upstream-libtorrent && git pull
 
 worklt-recreate:
@@ -22,12 +24,28 @@ worklt-export:
 
 #
 
+upqb-bump:
+    cd upstream-qbittorrent && {{ rejust }} _require_branch master
+    cd upstream-qbittorrent && git pull
+
 workqb-recreate:
     rm -rf work-qbittorrent || true
-    git clone qBittorrent work-qbittorrent
-    cd work-qbittorrent && git checkout '0c17d91d6326f86e0de0df02651bfa135530ec60'
+    git clone upstream-qbittorrent work-qbittorrent
     cd work-qbittorrent && git switch -c xpbranch
     cd work-qbittorrent && stg import --series ../qbittorrent.series --stripname
+
+#
+
+[no-cd]
+_require_branch branch:
+    #!/usr/bin/env bash
+    branch=$(git branch --show-current)
+    if [ "$branch" != "{{ branch }}" ]; then
+        echo "error: on branch '${branch:-detached HEAD}', must be on {{ branch }}" >&2
+        exit 1
+    else
+        echo "on branch {{ branch }}"
+    fi
 
 # to extract commit
 # git format-patch HEAD^^^
