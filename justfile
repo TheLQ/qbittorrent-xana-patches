@@ -88,6 +88,7 @@ qb-export:
     mv work-qbexport/*.patch .
     mv work-qbexport/series qbittorrent.series
     rm -r work-qbexport
+    sed -i -E 's/^index [0-9a-f]+\.\.[0-9a-f]+/index 000000..000000/' qb-*.patch
 
 #
 

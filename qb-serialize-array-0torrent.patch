@@ -9,7 +9,7 @@ From: Leon Blakey <code@leonblakey.com>
  2 files changed, 104 insertions(+)
 
 diff --git a/src/webui/api/serialize/serialize_torrent.cpp b/src/webui/api/serialize/serialize_torrent.cpp
-index 0642bce02..9245b4862 100644
+index 000000..000000 100644
 --- a/src/webui/api/serialize/serialize_torrent.cpp
 +++ b/src/webui/api/serialize/serialize_torrent.cpp
 @@ -186,3 +186,106 @@ QVariantMap serialize(const BitTorrent::Torrent &torrent)
@@ -120,7 +120,7 @@ index 0642bce02..9245b4862 100644
 +    return result;
 +}
 diff --git a/src/webui/api/serialize/serialize_torrent.h b/src/webui/api/serialize/serialize_torrent.h
-index 84f3647b7..8c52f85fb 100644
+index 000000..000000 100644
 --- a/src/webui/api/serialize/serialize_torrent.h
 +++ b/src/webui/api/serialize/serialize_torrent.h
 @@ -109,3 +109,4 @@ inline const QString KEY_TORRENT_CREATED_BY = u"created_by"_s;

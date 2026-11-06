@@ -9,7 +9,7 @@ From: Leon Blakey <code@leonblakey.com>
  2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/src/base/bittorrent/resumedatastorage.cpp b/src/base/bittorrent/resumedatastorage.cpp
-index e74ec1123..ed5cb1a64 100644
+index 000000..000000 100644
 --- a/src/base/bittorrent/resumedatastorage.cpp
 +++ b/src/base/bittorrent/resumedatastorage.cpp
 @@ -50,7 +50,7 @@ Path BitTorrent::ResumeDataStorage::path() const
@@ -22,7 +22,7 @@ index e74ec1123..ed5cb1a64 100644
      auto *loadingThread = QThread::create([this]()
      {
 diff --git a/src/base/bittorrent/sessionimpl.cpp b/src/base/bittorrent/sessionimpl.cpp
-index d6b6c6552..9fa055e1c 100644
+index 000000..000000 100644
 --- a/src/base/bittorrent/sessionimpl.cpp
 +++ b/src/base/bittorrent/sessionimpl.cpp
 @@ -126,7 +126,7 @@ using namespace BitTorrent;

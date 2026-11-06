@@ -8,10 +8,10 @@ From: Leon Blakey <code@leonblakey.com>
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/src/base/bittorrent/sessionimpl.cpp b/src/base/bittorrent/sessionimpl.cpp
-index f340e8cf8..d6b6c6552 100644
+index 000000..000000 100644
 --- a/src/base/bittorrent/sessionimpl.cpp
 +++ b/src/base/bittorrent/sessionimpl.cpp
-@@ -3401,7 +3401,8 @@ void SessionImpl::saveResumeData()
+@@ -3405,7 +3405,8 @@ void SessionImpl::saveResumeData()
      while ((m_numResumeData > 0) || !m_moveStorageQueue.isEmpty() || m_needSaveTorrentsQueue)
      {
          const lt::seconds waitTime {5};

@@ -8,7 +8,7 @@ From: Leon Blakey <code@leonblakey.com>
  1 file changed, 72 insertions(+), 37 deletions(-)
 
 diff --git a/src/webui/api/torrentscontroller.cpp b/src/webui/api/torrentscontroller.cpp
-index 334bf4667..3937122e4 100644
+index 000000..000000 100644
 --- a/src/webui/api/torrentscontroller.cpp
 +++ b/src/webui/api/torrentscontroller.cpp
 @@ -665,6 +665,7 @@ void TorrentsController::countAction()

@@ -10,7 +10,7 @@ From: Leon Blakey <code@leonblakey.com>
  3 files changed, 38 insertions(+), 3 deletions(-)
 
 diff --git a/src/base/bittorrent/bencoderesumedatastorage.cpp b/src/base/bittorrent/bencoderesumedatastorage.cpp
-index 8565b9783..61e197a0d 100644
+index 000000..000000 100644
 --- a/src/base/bittorrent/bencoderesumedatastorage.cpp
 +++ b/src/base/bittorrent/bencoderesumedatastorage.cpp
 @@ -195,6 +195,9 @@ void BitTorrent::BencodeResumeDataStorage::loadQueue(const Path &queueFilename)
@@ -34,7 +34,7 @@ index 8565b9783..61e197a0d 100644
  
  BitTorrent::LoadResumeDataResult BitTorrent::BencodeResumeDataStorage::loadTorrentResumeData(const QByteArray &data, const QByteArray &metadata) const
 diff --git a/src/webui/api/synccontroller.cpp b/src/webui/api/synccontroller.cpp
-index 406f9bfb3..a26745cb4 100644
+index 000000..000000 100644
 --- a/src/webui/api/synccontroller.cpp
 +++ b/src/webui/api/synccontroller.cpp
 @@ -44,6 +44,7 @@
@@ -105,7 +105,7 @@ index 406f9bfb3..a26745cb4 100644
  }
  
 diff --git a/src/webui/webapplication.cpp b/src/webui/webapplication.cpp
-index 9af2dcf1d..d5c6b9dfd 100644
+index 000000..000000 100644
 --- a/src/webui/webapplication.cpp
 +++ b/src/webui/webapplication.cpp
 @@ -416,8 +416,14 @@ void WebApplication::processAPIRequest(const QString &endpoint, const Http::Head
