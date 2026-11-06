@@ -63,14 +63,12 @@ qb-rename from to:
 qb-show patch:
     cd work-qbittorrent && stg show {{ patch }}
 
-qb-squash from to message:
-    cd work-qbittorrent && stg show {{ from }}
-    cd work-qbittorrent && stg show {{ to }}
+qb-squash to_update update_with message:
     cd work-qbittorrent && stg squash \
-        --name={{ to }} \
+        --name={{ to_update }} \
         '--message={{ message }}' \
-        {{ from }} {{ to }}
-    cd work-qbittorrent && stg show {{ to }}
+        {{ to_update }} {{ update_with }} 
+    cd work-qbittorrent && stg series
 
 # qb-import-from-git qb-serialize-array-1webui ../qbup/qBittorrent 565044244d64b21a65138b37455344c8f528a3f0
 qb-import-from-git patch fromdir commit:

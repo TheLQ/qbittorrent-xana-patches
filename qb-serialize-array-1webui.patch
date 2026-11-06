@@ -1,11 +1,11 @@
-[PATCH] filter: WebUI info with fields for serialize_array
+WebUI: add array= to torrent/info
 
 From: Leon Blakey <code@leonblakey.com>
 
 
 ---
- src/webui/api/torrentscontroller.cpp |  109 ++++++++++++++++++++++------------
- 1 file changed, 72 insertions(+), 37 deletions(-)
+ src/webui/api/torrentscontroller.cpp |  110 +++++++++++++++++++++++-----------
+ 1 file changed, 73 insertions(+), 37 deletions(-)
 
 diff --git a/src/webui/api/torrentscontroller.cpp b/src/webui/api/torrentscontroller.cpp
 index 000000..000000 100644
@@ -19,7 +19,7 @@ index 000000..000000 100644
      const QString filter {params()[u"filter"_s]};
      const std::optional<QString> category = Utils::Dict::get(params(), u"category"_s);
      const std::optional<Tag> tag = getOptionalTag(params(), u"tag"_s);
-@@ -692,14 +693,28 @@ void TorrentsController::infoAction()
+@@ -692,14 +693,29 @@ void TorrentsController::infoAction()
          if (!torrentFilter.match(torrent))
              continue;
  
@@ -40,11 +40,12 @@ index 000000..000000 100644
 +            torrentList.append(serializedTorrent);
 +        } else {
 +            QVariantList serializedTorrent = serialize_array(*torrent, fields);
-+            if (includeFiles)
++            if (includeFiles) {
 +                if (torrent->hasMetadata())
 +                    serializedTorrent.append(getFiles(torrent));
 +                else
 +                    serializedTorrent.append(QVariant());
++            }
 +
 +            if (includeTrackers)
 +                serializedTorrent.append(getTrackers(torrent));
@@ -54,7 +55,7 @@ index 000000..000000 100644
      }
  
      if (torrentList.isEmpty())
-@@ -710,42 +725,62 @@ void TorrentsController::infoAction()
+@@ -710,42 +726,62 @@ void TorrentsController::infoAction()
  
      if (!sortedColumn.isEmpty())
      {
