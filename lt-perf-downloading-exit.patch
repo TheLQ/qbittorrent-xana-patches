@@ -1,0 +1,26 @@
+perf: Fix slow exit with large download queues
+
+From: Leon Blakey <code@leonblakey.com>
+
+
+---
+ src/session_impl.cpp |    6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/session_impl.cpp b/src/session_impl.cpp
+index add5f7b14..31459e244 100644
+--- a/src/session_impl.cpp
++++ b/src/session_impl.cpp
+@@ -1079,6 +1079,12 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
+ 		session_log(" aborting all torrents (%d)", int(m_torrents.size()));
+ #endif
+ 		// abort all torrents
++		// todo: Clear m_download_queue, set special pos flag, so torrent::abort() doesn't keep trying to set_queue_positon_impl all next entries
++		m_download_queue.clear();
++		for(auto it = m_torrents.begin(); it != m_torrents.end(); it++)
++		{
++			(*it)->set_queue_position_impl(no_pos);
++		}
+ 		for (auto const& te : m_torrents)
+ 		{
+ 			te->abort();

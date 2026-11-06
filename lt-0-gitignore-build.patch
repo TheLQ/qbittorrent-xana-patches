@@ -1,0 +1,18 @@
+vscode: ignore build dir
+
+From: Leon Blakey <code@leonblakey.com>
+
+
+---
+ .gitignore |    1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/.gitignore b/.gitignore
+index 1cec5e789..0b5faf37b 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -88,3 +88,4 @@ examples/upnp_test
+ # binaries in the tests directory
+ tools/dht_put
+ tools/session_log_alerts
++build
