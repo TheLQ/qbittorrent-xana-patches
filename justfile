@@ -28,11 +28,50 @@ upqb-bump:
     cd upstream-qbittorrent && {{ rejust }} _require_branch master
     cd upstream-qbittorrent && git pull
 
-workqb-recreate:
+qb-recreate:
     rm -rf work-qbittorrent || true
     git clone upstream-qbittorrent work-qbittorrent
     cd work-qbittorrent && git switch -c xpbranch
     cd work-qbittorrent && stg import --series ../qbittorrent.series --stripname
+
+qb-series:
+    cd work-qbittorrent && stg series
+
+qb-status:
+    cd work-qbittorrent && stg status
+
+qb-write-patch name:
+    rm -r work-qbittorrent/patches-xpbranch || true
+    cd work-qbittorrent && stg export {{ name }}
+    ls work-qbittorrent/patches-xpbranch
+    cp work-qbittorrent/patches-xpbranch/{{ name }} {{ name }}.patch
+    rm -r work-qbittorrent/patches-xpbranch
+    git diff {{ name }}.patch
+
+qb-last-drop:
+    cd work-qbittorrent && stg series
+    cd work-qbittorrent && stg delete $(stg top)
+    cd work-qbittorrent && stg series
+
+qb-last-show:
+    cd work-qbittorrent && stg series
+    cd work-qbittorrent && stg show $(stg top)
+
+# qb-import-from-git qb-serialize-array-1webui ../qbup/qBittorrent 565044244d64b21a65138b37455344c8f528a3f0
+qb-import-from-git patch fromdir commit:
+    cd '{{ fromdir }}' && git format-patch -1 {{ commit }} --stdout > '{{ justfile_directory() }}/tmp.patch'   
+    cd work-qbittorrent && stg import ../tmp.patch
+    cd work-qbittorrent && stg rename $(stg top) {{ patch }}
+    rm tmp.patch
+
+qb-export:
+    rm -r work-qbexport || true
+    cd work-qbittorrent && stg export \
+        --dir ../work-qbexport \
+        --patch
+    mv work-qbexport/*.patch .
+    mv work-qbexport/series qbittorrent.series
+    rm -r work-qbexport
 
 #
 
