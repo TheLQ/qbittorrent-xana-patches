@@ -1,19 +1,27 @@
-[PATCH] debug: add timers
+debug: add timers
 
 From: Leon Blakey <code@leonblakey.com>
 
 
 ---
- src/base/bittorrent/bencoderesumedatastorage.cpp |    6 +++++
- src/webui/api/synccontroller.cpp                 |   25 +++++++++++++++++++++-
- src/webui/webapplication.cpp                     |   10 +++++++--
- 3 files changed, 38 insertions(+), 3 deletions(-)
+ src/base/bittorrent/bencoderesumedatastorage.cpp |    7 ++++++
+ src/webui/api/synccontroller.cpp                 |   26 +++++++++++++++++++++-
+ src/webui/webapplication.cpp                     |   10 +++++++-
+ 3 files changed, 40 insertions(+), 3 deletions(-)
 
 diff --git a/src/base/bittorrent/bencoderesumedatastorage.cpp b/src/base/bittorrent/bencoderesumedatastorage.cpp
 index 000000..000000 100644
 --- a/src/base/bittorrent/bencoderesumedatastorage.cpp
 +++ b/src/base/bittorrent/bencoderesumedatastorage.cpp
-@@ -195,6 +195,9 @@ void BitTorrent::BencodeResumeDataStorage::loadQueue(const Path &queueFilename)
+@@ -40,6 +40,7 @@
+ 
+ #include <QByteArray>
+ #include <QDebug>
++#include <QElapsedTimer>
+ #include <QFile>
+ #include <QRegularExpression>
+ #include <QThread>
+@@ -195,6 +196,9 @@ void BitTorrent::BencodeResumeDataStorage::loadQueue(const Path &queueFilename)
          return;
      }
  
@@ -23,7 +31,7 @@ index 000000..000000 100644
      QHash<TorrentID, qsizetype> registeredTorrentsIndexes;
      registeredTorrentsIndexes.reserve(m_registeredTorrents.length());
      for (qsizetype i = 0; i < m_registeredTorrents.length(); ++i)
-@@ -224,6 +227,9 @@ void BitTorrent::BencodeResumeDataStorage::loadQueue(const Path &queueFilename)
+@@ -224,6 +228,9 @@ void BitTorrent::BencodeResumeDataStorage::loadQueue(const Path &queueFilename)
              }
          }
      }
@@ -37,7 +45,15 @@ diff --git a/src/webui/api/synccontroller.cpp b/src/webui/api/synccontroller.cpp
 index 000000..000000 100644
 --- a/src/webui/api/synccontroller.cpp
 +++ b/src/webui/api/synccontroller.cpp
-@@ -44,6 +44,7 @@
+@@ -28,6 +28,7 @@
+ 
+ #include "synccontroller.h"
+ 
++#include <QElapsedTimer>
+ #include <QFuture>
+ #include <QJsonArray>
+ #include <QJsonObject>
+@@ -44,6 +45,7 @@
  #include "base/bittorrent/torrentinfo.h"
  #include "base/bittorrent/trackerentrystatus.h"
  #include "base/global.h"
@@ -45,7 +61,7 @@ index 000000..000000 100644
  #include "base/net/geoipmanager.h"
  #include "base/net/reverseresolution.h"
  #include "base/preferences.h"
-@@ -347,6 +348,8 @@ namespace
+@@ -347,6 +349,8 @@ namespace
  
      QJsonObject generateSyncData(int acceptedResponseId, const QVariantMap &data, QVariantMap &lastAcceptedData, QVariantMap &lastData)
      {
@@ -54,7 +70,7 @@ index 000000..000000 100644
          QVariantMap syncData;
          bool fullUpdate = true;
          const int lastResponseId = (acceptedResponseId > 0) ? lastData[KEY_RESPONSE_ID].toInt() : 0;
-@@ -378,7 +381,16 @@ namespace
+@@ -378,7 +382,16 @@ namespace
          lastData[KEY_RESPONSE_ID] = responseId;
          syncData[KEY_RESPONSE_ID] = responseId;
  
@@ -72,7 +88,7 @@ index 000000..000000 100644
      }
  
      void addAnnounceStats(QVariantMap &serializedTorrent, const BitTorrent::Torrent *torrent)
-@@ -592,6 +604,9 @@ void SyncController::makeMaindataSnapshot()
+@@ -592,6 +605,9 @@ void SyncController::makeMaindataSnapshot()
  
  QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fullUpdate)
  {
@@ -82,7 +98,7 @@ index 000000..000000 100644
      // if need to update existing sync data
      for (const QString &category : asConst(m_updatedCategories))
          m_maindataSyncBuf.removedCategories.removeOne(category);
-@@ -751,6 +766,10 @@ QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fu
+@@ -751,6 +767,10 @@ QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fu
          m_maindataSnapshot.serverState = serverState;
      }
  
@@ -93,12 +109,12 @@ index 000000..000000 100644
      QJsonObject syncData;
      syncData[KEY_RESPONSE_ID] = id;
      if (fullUpdate)
-@@ -797,6 +816,10 @@ QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fu
+@@ -797,6 +817,10 @@ QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fu
      if (!m_maindataSyncBuf.serverState.isEmpty())
          syncData[KEY_SERVER_STATE] = QJsonObject::fromVariantMap(m_maindataSyncBuf.serverState);
  
 +    auto jsonBuildSecs = jsonBuildTimer.elapsed() / 1000;
-+    
++
 +    LogMsg(QObject::tr("Maindata timer generate %1 jsonbuild %2").arg(calcSecs).arg(jsonBuildSecs), Log::WARNING);
 +
      return syncData;
