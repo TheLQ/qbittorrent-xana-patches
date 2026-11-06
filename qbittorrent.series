@@ -5,3 +5,4 @@ qb-perf-exit-expire.patch
 qb-perf-huge-resume.patch
 qb-serialize-array-0torrent.patch
 qb-serialize-array-1webui.patch
+qb-events-timers.patch

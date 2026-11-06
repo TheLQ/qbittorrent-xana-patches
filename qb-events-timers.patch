@@ -1,20 +1,19 @@
-Add debug timers
+[PATCH] debug: add timers
 
 From: Leon Blakey <code@leonblakey.com>
 
 
 ---
  src/base/bittorrent/bencoderesumedatastorage.cpp |    6 +++++
- src/base/bittorrent/sessionimpl.cpp              |   21 ++++++++++++++++++
  src/webui/api/synccontroller.cpp                 |   25 +++++++++++++++++++++-
- src/webui/webapplication.cpp                     |    8 ++++++-
- 4 files changed, 57 insertions(+), 3 deletions(-)
+ src/webui/webapplication.cpp                     |   10 +++++++--
+ 3 files changed, 38 insertions(+), 3 deletions(-)
 
 diff --git a/src/base/bittorrent/bencoderesumedatastorage.cpp b/src/base/bittorrent/bencoderesumedatastorage.cpp
-index ee87b5601..dcb6cddd5 100644
+index 8565b9783..61e197a0d 100644
 --- a/src/base/bittorrent/bencoderesumedatastorage.cpp
 +++ b/src/base/bittorrent/bencoderesumedatastorage.cpp
-@@ -189,6 +189,9 @@ void BitTorrent::BencodeResumeDataStorage::loadQueue(const Path &queueFilename)
+@@ -195,6 +195,9 @@ void BitTorrent::BencodeResumeDataStorage::loadQueue(const Path &queueFilename)
          return;
      }
  
@@ -24,7 +23,7 @@ index ee87b5601..dcb6cddd5 100644
      QHash<TorrentID, qsizetype> registeredTorrentsIndexes;
      registeredTorrentsIndexes.reserve(m_registeredTorrents.length());
      for (qsizetype i = 0; i < m_registeredTorrents.length(); ++i)
-@@ -218,6 +221,9 @@ void BitTorrent::BencodeResumeDataStorage::loadQueue(const Path &queueFilename)
+@@ -224,6 +227,9 @@ void BitTorrent::BencodeResumeDataStorage::loadQueue(const Path &queueFilename)
              }
          }
      }
@@ -34,69 +33,8 @@ index ee87b5601..dcb6cddd5 100644
  }
  
  BitTorrent::LoadResumeDataResult BitTorrent::BencodeResumeDataStorage::loadTorrentResumeData(const QByteArray &data, const QByteArray &metadata) const
-diff --git a/src/base/bittorrent/sessionimpl.cpp b/src/base/bittorrent/sessionimpl.cpp
-index 708258e93..d741cb4c4 100644
---- a/src/base/bittorrent/sessionimpl.cpp
-+++ b/src/base/bittorrent/sessionimpl.cpp
-@@ -1421,6 +1421,10 @@ void SessionImpl::prepareStartup()
-         }
- 
-         emit startupProgressUpdated((context->finishedResumeDataCount * 100.) / context->totalResumeDataCount);
-+
-+        if (context->finishedResumeDataCount % 10000 == 0) {
-+            LogMsg(tr("Finished %1").arg(context->finishedResumeDataCount), Log::WARNING);
-+        }
-     });
- 
-     context->startupStorage->loadAll();
-@@ -1430,7 +1434,12 @@ void SessionImpl::handleLoadedResumeData(ResumeSessionContext *context)
- {
-     context->isLoadedResumeDataHandlingEnqueued = false;
- 
-+    // ???
-+    // this is the active count between loaded, (this) importing into libtorrent, and UI alert?
-     int count = context->processingResumeDataCount;
-+    // Resume loading each file is on a different thread
-+    // We then rapidly (spinlocking?) poll latest files from it. 20, 40, 50 at a time
-+    // so MAX_PROCESSING_RESUMEDATA can be infinite, it doesn't matter
-     while (context->processingResumeDataCount < MAX_PROCESSING_RESUMEDATA_COUNT)
-     {
-         if (context->loadedResumeData.isEmpty())
-@@ -1446,6 +1455,7 @@ void SessionImpl::handleLoadedResumeData(ResumeSessionContext *context)
-                 }
-                 else if (!context->isLoadedResumeDataHandlingEnqueued)
-                 {
-+                    LogMsg(tr("empty, requing"), Log::WARNING);
-                     QMetaObject::invokeMethod(this, [this, context]() { handleLoadedResumeData(context); }, Qt::QueuedConnection);
-                     context->isLoadedResumeDataHandlingEnqueued = true;
-                 }
-@@ -1453,6 +1463,10 @@ void SessionImpl::handleLoadedResumeData(ResumeSessionContext *context)
- 
-             break;
-         }
-+        // LogMsg(tr("fetch resume for %1 total %2").arg(context->loadedResumeData.length()).arg(context->processingResumeDataCount));
-+        if (context->processingResumeDataCount % 10000 == 0) {
-+            LogMsg(tr("Resume count %1").arg(context->processingResumeDataCount), Log::WARNING);
-+        }
- 
-         processNextResumeData(context);
-         ++count;
-@@ -1630,7 +1644,12 @@ void SessionImpl::processNextResumeData(ResumeSessionContext *context)
-             Torrent *torrent = createTorrent(alert->handle, std::move(resumeData));
-             m_loadedTorrents.append(torrent);
- 
--            LogMsg(tr("Restored torrent. Torrent: \"%1\"").arg(torrent->name()));
-+            auto total = m_torrents.size();
-+            if (total % 10000 == 0) {
-+                LogMsg(tr("Loaded torrent count %1").arg(total), Log::WARNING);
-+            }
-+
-+            // LogMsg(tr("Restored torrent. Torrent: \"%1\"").arg(torrent->name()));
-         }
-     });
- 
 diff --git a/src/webui/api/synccontroller.cpp b/src/webui/api/synccontroller.cpp
-index a68a7fce2..fc150c0a3 100644
+index 406f9bfb3..a26745cb4 100644
 --- a/src/webui/api/synccontroller.cpp
 +++ b/src/webui/api/synccontroller.cpp
 @@ -44,6 +44,7 @@
@@ -105,9 +43,9 @@ index a68a7fce2..fc150c0a3 100644
  #include "base/global.h"
 +#include "base/logger.h"
  #include "base/net/geoipmanager.h"
+ #include "base/net/reverseresolution.h"
  #include "base/preferences.h"
- #include "base/utils/string.h"
-@@ -374,6 +375,8 @@ namespace
+@@ -347,6 +348,8 @@ namespace
  
      QJsonObject generateSyncData(int acceptedResponseId, const QVariantMap &data, QVariantMap &lastAcceptedData, QVariantMap &lastData)
      {
@@ -116,7 +54,7 @@ index a68a7fce2..fc150c0a3 100644
          QVariantMap syncData;
          bool fullUpdate = true;
          const int lastResponseId = (acceptedResponseId > 0) ? lastData[KEY_RESPONSE_ID].toInt() : 0;
-@@ -405,7 +408,16 @@ namespace
+@@ -378,7 +381,16 @@ namespace
          lastData[KEY_RESPONSE_ID] = responseId;
          syncData[KEY_RESPONSE_ID] = responseId;
  
@@ -134,7 +72,7 @@ index a68a7fce2..fc150c0a3 100644
      }
  
      void addAnnounceStats(QVariantMap &serializedTorrent, const BitTorrent::Torrent *torrent)
-@@ -622,6 +634,9 @@ void SyncController::makeMaindataSnapshot()
+@@ -592,6 +604,9 @@ void SyncController::makeMaindataSnapshot()
  
  QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fullUpdate)
  {
@@ -144,7 +82,7 @@ index a68a7fce2..fc150c0a3 100644
      // if need to update existing sync data
      for (const QString &category : asConst(m_updatedCategories))
          m_maindataSyncBuf.removedCategories.removeOne(category);
-@@ -778,6 +793,10 @@ QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fu
+@@ -751,6 +766,10 @@ QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fu
          m_maindataSnapshot.serverState = serverState;
      }
  
@@ -155,33 +93,35 @@ index a68a7fce2..fc150c0a3 100644
      QJsonObject syncData;
      syncData[KEY_RESPONSE_ID] = id;
      if (fullUpdate)
-@@ -824,6 +843,10 @@ QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fu
+@@ -797,6 +816,10 @@ QJsonObject SyncController::generateMaindataSyncData(const int id, const bool fu
      if (!m_maindataSyncBuf.serverState.isEmpty())
          syncData[KEY_SERVER_STATE] = QJsonObject::fromVariantMap(m_maindataSyncBuf.serverState);
  
 +    auto jsonBuildSecs = jsonBuildTimer.elapsed() / 1000;
-+
++    
 +    LogMsg(QObject::tr("Maindata timer generate %1 jsonbuild %2").arg(calcSecs).arg(jsonBuildSecs), Log::WARNING);
 +
      return syncData;
  }
  
 diff --git a/src/webui/webapplication.cpp b/src/webui/webapplication.cpp
-index c6de1586e..058bf8280 100644
+index 9af2dcf1d..d5c6b9dfd 100644
 --- a/src/webui/webapplication.cpp
 +++ b/src/webui/webapplication.cpp
-@@ -369,7 +369,13 @@ void WebApplication::doProcessRequest(const bool isUsingApiKey)
+@@ -416,8 +416,14 @@ void WebApplication::processAPIRequest(const QString &endpoint, const Http::Head
              switch (result.data.userType())
              {
              case QMetaType::QJsonDocument:
--                print(result.data.toJsonDocument().toJson(QJsonDocument::Compact), Http::CONTENT_TYPE_JSON);
+-                response.headers.insert(Http::HEADER_CONTENT_TYPE, Http::CONTENT_TYPE_JSON);
+-                response.content = result.data.toJsonDocument().toJson(QJsonDocument::Compact);
 +                {
 +                    QElapsedTimer stringTimer;
 +                    stringTimer.start();
-+                    print(result.data.toJsonDocument().toJson(QJsonDocument::Compact), Http::CONTENT_TYPE_JSON);
++                    response.headers.insert(Http::HEADER_CONTENT_TYPE, Http::CONTENT_TYPE_JSON);
++                    response.content = result.data.toJsonDocument().toJson(QJsonDocument::Compact);
 +                    auto stringSecs = stringTimer.elapsed() / 1000;
 +                    LogMsg(tr("JSON stringify %1").arg(stringSecs), Log::WARNING);
 +                }
                  break;
              case QMetaType::QByteArray:
-                 {
+                 response.headers.insert(Http::HEADER_CONTENT_TYPE, (!result.mimeType.isEmpty() ? result.mimeType : Http::CONTENT_TYPE_TXT));
