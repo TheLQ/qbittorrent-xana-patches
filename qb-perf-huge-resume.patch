@@ -5,7 +5,8 @@ From: Leon Blakey <code@leonblakey.com>
 
 ---
  src/base/bittorrent/resumedatastorage.cpp |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ src/base/bittorrent/sessionimpl.cpp       |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/src/base/bittorrent/resumedatastorage.cpp b/src/base/bittorrent/resumedatastorage.cpp
 index e74ec1123..ed5cb1a64 100644
@@ -20,3 +21,16 @@ index e74ec1123..ed5cb1a64 100644
  
      auto *loadingThread = QThread::create([this]()
      {
+diff --git a/src/base/bittorrent/sessionimpl.cpp b/src/base/bittorrent/sessionimpl.cpp
+index d6b6c6552..9fa055e1c 100644
+--- a/src/base/bittorrent/sessionimpl.cpp
++++ b/src/base/bittorrent/sessionimpl.cpp
+@@ -126,7 +126,7 @@ using namespace BitTorrent;
+ 
+ const Path CATEGORIES_FILE_NAME {u"categories.json"_s};
+ const Path ADDITIONAL_TRACKERS_FROM_URL_FILE_NAME {u"additional_trackers_from_url.txt"_s};
+-const int MAX_PROCESSING_RESUMEDATA_COUNT = 50;
++const int MAX_PROCESSING_RESUMEDATA_COUNT = 500000;
+ const std::chrono::seconds FREEDISKSPACE_CHECK_TIMEOUT = 30s;
+ 
+ namespace

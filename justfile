@@ -57,6 +57,21 @@ qb-last-show:
     cd work-qbittorrent && stg series
     cd work-qbittorrent && stg show $(stg top)
 
+qb-rename from to:
+    cd work-qbittorrent && stg rename {{ from }} {{ to }} 
+
+qb-show patch:
+    cd work-qbittorrent && stg show {{ patch }}
+
+qb-squash from to message:
+    cd work-qbittorrent && stg show {{ from }}
+    cd work-qbittorrent && stg show {{ to }}
+    cd work-qbittorrent && stg squash \
+        --name={{ to }} \
+        '--message={{ message }}' \
+        {{ from }} {{ to }}
+    cd work-qbittorrent && stg show {{ to }}
+
 # qb-import-from-git qb-serialize-array-1webui ../qbup/qBittorrent 565044244d64b21a65138b37455344c8f528a3f0
 qb-import-from-git patch fromdir commit:
     cd '{{ fromdir }}' && git format-patch -1 {{ commit }} --stdout > '{{ justfile_directory() }}/tmp.patch'   
