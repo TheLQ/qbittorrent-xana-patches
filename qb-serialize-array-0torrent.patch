@@ -1,0 +1,130 @@
+filter: New serialize filter parameter
+
+From: Leon Blakey <code@leonblakey.com>
+
+
+---
+ src/webui/api/serialize/serialize_torrent.cpp |  103 +++++++++++++++++++++++++
+ src/webui/api/serialize/serialize_torrent.h   |    1 
+ 2 files changed, 104 insertions(+)
+
+diff --git a/src/webui/api/serialize/serialize_torrent.cpp b/src/webui/api/serialize/serialize_torrent.cpp
+index 0642bce02..9245b4862 100644
+--- a/src/webui/api/serialize/serialize_torrent.cpp
++++ b/src/webui/api/serialize/serialize_torrent.cpp
+@@ -186,3 +186,106 @@ QVariantMap serialize(const BitTorrent::Torrent &torrent)
+         {KEY_TORRENT_COMMENT, torrent.comment()}
+     };
+ }
++
++QVariantList serialize_array(const BitTorrent::Torrent &torrent, const QList<QString> &filters)
++{
++    // todo: re-use lambdas
++    const bool hasMetadata = torrent.hasMetadata();
++    const auto adjustQueuePosition = [](const int position) -> int
++    {
++        return (position < 0) ? 0 : (position + 1);
++    };
++
++    const auto adjustRatio = [](const qreal ratio) -> qreal
++    {
++        return (ratio >= BitTorrent::Torrent::MAX_RATIO) ? -1 : ratio;
++    };
++
++    const auto getLastActivityTime = [&torrent]() -> qlonglong
++    {
++        const qlonglong timeSinceActivity = torrent.timeSinceActivity();
++        return (timeSinceActivity < 0)
++            ? Utils::DateTime::toSecsSinceEpoch(torrent.addedTime())
++            : (QDateTime::currentSecsSinceEpoch() - timeSinceActivity);
++    };
++
++    QVariantList result;
++    if (filters.isEmpty()) {
++        return result;
++    }
++
++    for (const QString &filter : filters)
++    {
++        if (filter == KEY_TORRENT_ID) { result.append(torrent.id().toString()); }
++        if (filter == KEY_TORRENT_INFOHASHV1) { result.append(torrent.infoHash().v1().toString()); }
++        if (filter == KEY_TORRENT_INFOHASHV2) { result.append(torrent.infoHash().v2().toString()); }
++        if (filter == KEY_TORRENT_NAME) { result.append(torrent.name()); }
++
++        if (filter == KEY_TORRENT_HAS_METADATA) { result.append(hasMetadata); }
++        if (filter == KEY_TORRENT_CREATED_BY) { result.append(torrent.creator()); }
++        if (filter == KEY_TORRENT_CREATION_DATE) { result.append(Utils::DateTime::toSecsSinceEpoch(torrent.creationDate())); }
++        if (filter == KEY_TORRENT_PRIVATE) { result.append((hasMetadata ? torrent.isPrivate() : QVariant())); }
++        if (filter == KEY_TORRENT_TOTAL_SIZE) { result.append(torrent.totalSize()); }
++        if (filter == KEY_TORRENT_PIECES_NUM) { result.append(torrent.piecesCount()); }
++        if (filter == KEY_TORRENT_PIECE_SIZE) { result.append(torrent.pieceLength()); }
++
++        if (filter == KEY_TORRENT_MAGNET_URI) { result.append(torrent.createMagnetURI()); }
++        if (filter == KEY_TORRENT_SIZE) { result.append(torrent.wantedSize()); }
++        if (filter == KEY_TORRENT_PROGRESS) { result.append(torrent.progress()); }
++        if (filter == KEY_TORRENT_TOTAL_WASTED) { result.append(torrent.wastedSize()); }
++        if (filter == KEY_TORRENT_PIECES_HAVE) { result.append(torrent.piecesHave()); }
++        if (filter == KEY_TORRENT_DLSPEED) { result.append(torrent.downloadPayloadRate()); }
++        if (filter == KEY_TORRENT_UPSPEED) { result.append(torrent.uploadPayloadRate()); }
++        if (filter == KEY_TORRENT_QUEUE_POSITION) { result.append(adjustQueuePosition(torrent.queuePosition())); }
++        if (filter == KEY_TORRENT_SEEDS) { result.append(torrent.seedsCount()); }
++        if (filter == KEY_TORRENT_NUM_COMPLETE) { result.append(torrent.totalSeedsCount()); }
++        if (filter == KEY_TORRENT_LEECHS) { result.append(torrent.leechsCount()); }
++        if (filter == KEY_TORRENT_NUM_INCOMPLETE) { result.append(torrent.totalLeechersCount()); }
++
++        if (filter == KEY_TORRENT_STATE) { result.append(torrentStateToString(torrent.state())); }
++        if (filter == KEY_TORRENT_ETA) { result.append(torrent.eta()); }
++        if (filter == KEY_TORRENT_SEQUENTIAL_DOWNLOAD) { result.append(torrent.isSequentialDownload()); }
++        if (filter == KEY_TORRENT_FIRST_LAST_PIECE_PRIO) { result.append(torrent.hasFirstLastPiecePriority()); }
++
++        if (filter == KEY_TORRENT_CATEGORY) { result.append(torrent.category()); }
++        if (filter == KEY_TORRENT_TAGS) { result.append(Utils::String::joinIntoString(torrent.tags(), u", "_s)); }
++        if (filter == KEY_TORRENT_SUPER_SEEDING) { result.append(torrent.superSeeding()); }
++        if (filter == KEY_TORRENT_FORCE_START) { result.append(torrent.isForced()); }
++        if (filter == KEY_TORRENT_SAVE_PATH) { result.append(torrent.savePath().toString()); }
++        if (filter == KEY_TORRENT_DOWNLOAD_PATH) { result.append(torrent.downloadPath().toString()); }
++        if (filter == KEY_TORRENT_CONTENT_PATH) { result.append(torrent.contentPath().toString()); }
++        if (filter == KEY_TORRENT_ROOT_PATH) { result.append(torrent.rootPath().toString()); }
++        if (filter == KEY_TORRENT_ADDED_ON) { result.append(Utils::DateTime::toSecsSinceEpoch(torrent.addedTime())); }
++        if (filter == KEY_TORRENT_COMPLETION_ON) { result.append(Utils::DateTime::toSecsSinceEpoch(torrent.completedTime())); }
++        if (filter == KEY_TORRENT_TRACKER) { result.append(torrent.currentTracker()); }
++        if (filter == KEY_TORRENT_TRACKERS_COUNT) { result.append(torrent.trackers().size()); }
++        if (filter == KEY_TORRENT_DL_LIMIT) { result.append(torrent.downloadLimit()); }
++        if (filter == KEY_TORRENT_UP_LIMIT) { result.append(torrent.uploadLimit()); }
++        if (filter == KEY_TORRENT_AMOUNT_DOWNLOADED) { result.append(torrent.totalDownload()); }
++        if (filter == KEY_TORRENT_AMOUNT_UPLOADED) { result.append(torrent.totalUpload()); }
++        if (filter == KEY_TORRENT_AMOUNT_DOWNLOADED_SESSION) { result.append(torrent.totalPayloadDownload()); }
++        if (filter == KEY_TORRENT_AMOUNT_UPLOADED_SESSION) { result.append(torrent.totalPayloadUpload()); }
++        if (filter == KEY_TORRENT_AMOUNT_LEFT) { result.append(torrent.remainingSize()); }
++        if (filter == KEY_TORRENT_AMOUNT_COMPLETED) { result.append(torrent.completedSize()); }
++        if (filter == KEY_TORRENT_CONNECTIONS_COUNT) { result.append(torrent.connectionsCount()); }
++        if (filter == KEY_TORRENT_CONNECTIONS_LIMIT) { result.append(torrent.connectionsLimit()); }
++        if (filter == KEY_TORRENT_MAX_RATIO) { result.append(torrent.maxRatio()); }
++        if (filter == KEY_TORRENT_MAX_SEEDING_TIME) { result.append(torrent.maxSeedingTime()); }
++        if (filter == KEY_TORRENT_MAX_INACTIVE_SEEDING_TIME) { result.append(torrent.maxInactiveSeedingTime()); }
++        if (filter == KEY_TORRENT_RATIO) { result.append(adjustRatio(torrent.realRatio())); }
++        if (filter == KEY_TORRENT_RATIO_LIMIT) { result.append(torrent.ratioLimit()); }
++        if (filter == KEY_TORRENT_POPULARITY) { result.append(torrent.popularity()); }
++        if (filter == KEY_TORRENT_SEEDING_TIME_LIMIT) { result.append(torrent.seedingTimeLimit()); }
++        if (filter == KEY_TORRENT_INACTIVE_SEEDING_TIME_LIMIT) { result.append(torrent.inactiveSeedingTimeLimit()); }
++        if (filter == KEY_TORRENT_LAST_SEEN_COMPLETE_TIME) { result.append(Utils::DateTime::toSecsSinceEpoch(torrent.lastSeenComplete())); }
++        if (filter == KEY_TORRENT_AUTO_TORRENT_MANAGEMENT) { result.append(torrent.isAutoTMMEnabled()); }
++        if (filter == KEY_TORRENT_TIME_ACTIVE) { result.append(torrent.activeTime()); }
++        if (filter == KEY_TORRENT_SEEDING_TIME) { result.append(torrent.finishedTime()); }
++        if (filter == KEY_TORRENT_LAST_ACTIVITY_TIME) { result.append(getLastActivityTime()); }
++        if (filter == KEY_TORRENT_AVAILABILITY) { result.append(torrent.distributedCopies()); }
++        if (filter == KEY_TORRENT_REANNOUNCE) { result.append(torrent.nextAnnounce()); }
++        if (filter == KEY_TORRENT_COMMENT) { result.append(torrent.comment()); }
++    }
++
++    return result;
++}
+diff --git a/src/webui/api/serialize/serialize_torrent.h b/src/webui/api/serialize/serialize_torrent.h
+index 84f3647b7..8c52f85fb 100644
+--- a/src/webui/api/serialize/serialize_torrent.h
++++ b/src/webui/api/serialize/serialize_torrent.h
+@@ -109,3 +109,4 @@ inline const QString KEY_TORRENT_CREATED_BY = u"created_by"_s;
+ inline const QString KEY_TORRENT_CREATION_DATE = u"creation_date"_s;
+ 
+ QVariantMap serialize(const BitTorrent::Torrent &torrent);
++QVariantList serialize_array(const BitTorrent::Torrent &torrent, const QList<QString> &fields);
