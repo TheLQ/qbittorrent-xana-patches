@@ -9,7 +9,7 @@ worklt-recreate:
     rm -rf work-libtorrent || true
     git clone upstream-libtorrent work-libtorrent
     cd work-libtorrent && git switch -c xpbranch
-    cd work-libtorrent && stg import --series ../libtorrent.series
+    cd work-libtorrent && stg import --series ../libtorrent.series --stripname
 
 worklt-export:
     rm -r work-ltexport || true
