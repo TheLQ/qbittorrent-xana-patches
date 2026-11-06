@@ -23,7 +23,7 @@ RUN set -e -x && \
     apt-get clean
     # pkg-config 
 
-ADD libtorrent /work/libtorrent
+ADD work-libtorrent /work/libtorrent
 RUN set -e -x && \
     cd /work/libtorrent && \
     rm -r build || true && \
@@ -33,7 +33,7 @@ RUN set -e -x && \
     ninja install
 
 # qbittorrent
-ADD qBittorrent /work/qBittorrent
+ADD work-qbittorrent /work/qBittorrent
 RUN set -e -x && \
     cd /work/qBittorrent && \
     rm -r build src/base/version.h  || true && \

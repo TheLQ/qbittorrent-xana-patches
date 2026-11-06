@@ -1,0 +1,4 @@
+/upstream-*
+/.git
+/*.patch
+/*.series

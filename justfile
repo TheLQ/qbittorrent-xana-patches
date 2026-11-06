@@ -6,6 +6,7 @@ default:
 uplt-bump:
     cd upstream-libtorrent && {{ rejust }} _require_branch RC_2_0
     cd upstream-libtorrent && git pull
+    git submodule update --init --recursive
 
 worklt-recreate:
     rm -rf work-libtorrent || true
@@ -24,9 +25,10 @@ worklt-export:
 
 #
 
-upqb-bump:
+qb-bump:
     cd upstream-qbittorrent && {{ rejust }} _require_branch master
-    cd upstream-qbittorrent && git pull
+    cd upstream-qbittorrent && git pull 
+    git submodule update --init --recursive
 
 qb-recreate:
     rm -rf work-qbittorrent || true
