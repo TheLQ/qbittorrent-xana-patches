@@ -1,6 +1,7 @@
 # This series applies on Git commit 0d6f6a008ed3c192b3eda25552a369b51da11c4d
 qb-0-vscode.patch
 qb-0-qdebug.patch
+qb-0-resume-debug.patch
 qb-perf-exit-expire.patch
 qb-perf-huge-resume.patch
 qb-serialize-array-0torrent.patch

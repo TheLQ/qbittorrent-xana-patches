@@ -1,0 +1,24 @@
+[PATCH] debug: log on finished
+
+From: Leon Blakey <code@leonblakey.com>
+
+
+---
+ src/base/bittorrent/sessionimpl.cpp |    4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/base/bittorrent/sessionimpl.cpp b/src/base/bittorrent/sessionimpl.cpp
+index 000000..000000 100644
+--- a/src/base/bittorrent/sessionimpl.cpp
++++ b/src/base/bittorrent/sessionimpl.cpp
+@@ -1534,6 +1534,10 @@ void SessionImpl::prepareStartup()
+         }
+ 
+         emit startupProgressUpdated((context->finishedResumeDataCount * 100.) / context->totalResumeDataCount);
++
++        if (context->finishedResumeDataCount % 10000 == 0) {
++            LogMsg(tr("Finished %1").arg(context->finishedResumeDataCount), Log::WARNING);
++        }
+     });
+ 
+     context->startupStorage->loadAll();
