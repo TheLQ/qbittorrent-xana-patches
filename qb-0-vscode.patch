@@ -4,8 +4,8 @@ From: Leon Blakey <code@leonblakey.com>
 
 
 ---
- cmake-variants.yaml |   22 ++++++++++++++++++++++
- 1 file changed, 22 insertions(+)
+ cmake-variants.yaml |   24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
  create mode 100644 cmake-variants.yaml
 
 diff --git a/cmake-variants.yaml b/cmake-variants.yaml
@@ -13,16 +13,18 @@ new file mode 100644
 index 000000..000000
 --- /dev/null
 +++ b/cmake-variants.yaml
-@@ -0,0 +1,22 @@
+@@ -0,0 +1,24 @@
 +buildnoxify:
 +  default: noxify
 +  choices:
 +    noxify:
 +      short: noxify
++      buildType: RelWithDebugInfo
++      env:
++        LD_LIBRARY_PATH: /home/desk/IdeaProjects/qbup/libtorrent/build
 +      settings:
 +        GUI: OFF
-+        CMAKE_PREFIX_PATH: /home/desk/IdeaProjects/qbup/libtorrent/build
-+    # guify:
++        LibtorrentRasterbar_DIR: /home/desk/IdeaProjects/qbup/libtorrent/build/LibtorrentRasterbar    # guify:
 +    #   short: guify
 +    #   settings:
 +    #     GUI: ON
