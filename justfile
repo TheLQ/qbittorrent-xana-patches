@@ -61,8 +61,9 @@ qb-last-show:
 qb-import-from-git patch fromdir commit:
     cd '{{ fromdir }}' && git format-patch -1 {{ commit }} --stdout > '{{ justfile_directory() }}/tmp.patch'   
     cd work-qbittorrent && stg import ../tmp.patch
-    cd work-qbittorrent && stg rename $(stg top) {{ patch }}
     rm tmp.patch
+    cd work-qbittorrent && stg rename $(stg top) {{ patch }}
+    {{ rejust }} qb-write-patch {{ patch }}
 
 qb-export:
     rm -r work-qbexport || true
