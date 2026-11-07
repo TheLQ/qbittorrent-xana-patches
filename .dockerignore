@@ -1,4 +1,5 @@
 /upstream-*
-/.git
+**/.git
+*/build
 /*.patch
 /*.series
