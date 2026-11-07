@@ -63,7 +63,7 @@ index 000000..000000 100644
 -            throw APIError(APIErrorType::BadParams, tr("'sort' parameter is invalid"));
 -
 -        const auto lessThan = [](const QVariant &left, const QVariant &right) -> bool
-+        if (fields.isEmpty())
++        if (arr_keys.isEmpty())
          {
 -            Q_ASSERT(left.userType() == right.userType());
 +            if (!torrentList[0].toMap().contains(sortedColumn))
