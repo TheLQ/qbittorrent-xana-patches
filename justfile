@@ -3,18 +3,21 @@ rejust := just_executable() + " --justfile " + justfile()
 default:
     {{ rejust }} --list
 
-uplt-bump:
-    cd upstream-libtorrent && {{ rejust }} _require_branch RC_2_0
-    cd upstream-libtorrent && git pull
+init:
     git submodule update --init --recursive
 
-worklt-recreate:
+lt-bump:
+    cd upstream-libtorrent && {{ rejust }} _require_branch RC_2_0
+    cd upstream-libtorrent && git pull
+
+lt-recreate:
     rm -rf work-libtorrent || true
     git clone upstream-libtorrent work-libtorrent
     cd work-libtorrent && git switch -c xpbranch
     cd work-libtorrent && stg import --series ../libtorrent.series --stripname
+    git submodule update --init --recursive
 
-worklt-export:
+lt-export:
     rm -r work-ltexport || true
     cd work-libtorrent && stg export \
         --dir ../work-ltexport \
@@ -28,13 +31,13 @@ worklt-export:
 qb-bump:
     cd upstream-qbittorrent && {{ rejust }} _require_branch master
     cd upstream-qbittorrent && git pull 
-    git submodule update --init --recursive
 
 qb-recreate:
     rm -rf work-qbittorrent || true
     git clone upstream-qbittorrent work-qbittorrent
     cd work-qbittorrent && git switch -c xpbranch
     cd work-qbittorrent && stg import --series ../qbittorrent.series --stripname
+    git submodule update --init --recursive
 
 qb-series:
     cd work-qbittorrent && stg series
