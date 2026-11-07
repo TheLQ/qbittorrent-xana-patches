@@ -15,7 +15,7 @@ lt-recreate:
     git clone upstream-libtorrent work-libtorrent
     cd work-libtorrent && git switch -c xpbranch
     cd work-libtorrent && stg import --series ../libtorrent.series --stripname
-    git submodule update --init --recursive
+    cd work-libtorrent && git submodule update --init --recursive
 
 lt-export:
     rm -r work-ltexport || true
@@ -25,6 +25,7 @@ lt-export:
     mv work-ltexport/*.patch .
     mv work-ltexport/series libtorrent.series
     rm -r work-ltexport
+    {{ rejust }} _patch_anonymous lt
 
 #
 
@@ -37,7 +38,6 @@ qb-recreate:
     git clone upstream-qbittorrent work-qbittorrent
     cd work-qbittorrent && git switch -c xpbranch
     cd work-qbittorrent && stg import --series ../qbittorrent.series --stripname
-    git submodule update --init --recursive
 
 qb-series:
     cd work-qbittorrent && stg series
@@ -91,7 +91,7 @@ qb-export:
     mv work-qbexport/*.patch .
     mv work-qbexport/series qbittorrent.series
     rm -r work-qbexport
-    sed -i -E 's/^index [0-9a-f]+\.\.[0-9a-f]+/index 000000..000000/' qb-*.patch
+    {{ rejust }} _patch_anonymous qb
 
 #
 
@@ -105,6 +105,9 @@ _require_branch branch:
     else
         echo "on branch {{ branch }}"
     fi
+
+_patch_anonymous prefix:
+    sed -i -E 's/^index [0-9a-f]+\.\.[0-9a-f]+/index 000000..000000/' {{ prefix }}-*.patch
 
 # to extract commit
 # git format-patch HEAD^^^
