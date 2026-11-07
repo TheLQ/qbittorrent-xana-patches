@@ -5,8 +5,8 @@ From: Leon Blakey <code@leonblakey.com>
 
 ---
  .gitignore          |    1 +
- cmake-variants.yaml |    7 +++++++
- 2 files changed, 8 insertions(+)
+ cmake-variants.yaml |    8 ++++++++
+ 2 files changed, 9 insertions(+)
  create mode 100644 cmake-variants.yaml
 
 diff --git a/.gitignore b/.gitignore
@@ -23,11 +23,12 @@ new file mode 100644
 index 000000..000000
 --- /dev/null
 +++ b/cmake-variants.yaml
-@@ -0,0 +1,7 @@
-+buildxana-lt:
-+  default: buildxana-lt-c
+@@ -0,0 +1,8 @@
++buildxanalt:
++  default: buildxanaltc
 +  choices:
-+    buildxana-lt-c:
++    buildxanaltc:
++      short: buildxana-lt-c
 +      buildType: RelWithDebInfo
 +      settings:
 +        CMAKE_INSTALL_PREFIX: ${workspaceFolder}/build
