@@ -15,7 +15,7 @@ index 000000..000000 100644
  //   - offset (int): set offset (if less than 0 - offset from end)
  void TorrentsController::infoAction()
  {
-+    const QStringList fields = {params()[u"fields"_s].split(u'|', Qt::SkipEmptyParts)};
++    const QStringList arr_keys = {params()[u"array"_s].split(u'|', Qt::SkipEmptyParts)};
      const QString filter {params()[u"filter"_s]};
      const std::optional<QString> category = Utils::Dict::get(params(), u"category"_s);
      const std::optional<Tag> tag = getOptionalTag(params(), u"tag"_s);
@@ -24,7 +24,7 @@ index 000000..000000 100644
              continue;
  
 -        QVariantMap serializedTorrent = serialize(*torrent);
-+        if (fields.isEmpty()) {
++        if (arr_keys.isEmpty()) {
 +            QVariantMap serializedTorrent = serialize(*torrent);
  
 -        if (includeFiles && torrent->hasMetadata())
@@ -39,7 +39,7 @@ index 000000..000000 100644
 -        torrentList.append(serializedTorrent);
 +            torrentList.append(serializedTorrent);
 +        } else {
-+            QVariantList serializedTorrent = serialize_array(*torrent, fields);
++            QVariantList serializedTorrent = serialize_array(*torrent, arr_keys);
 +            if (includeFiles) {
 +                if (torrent->hasMetadata())
 +                    serializedTorrent.append(getFiles(torrent));

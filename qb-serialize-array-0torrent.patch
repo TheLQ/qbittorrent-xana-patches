@@ -4,132 +4,279 @@ From: Leon Blakey <code@leonblakey.com>
 
 
 ---
- src/webui/api/serialize/serialize_torrent.cpp |  108 +++++++++++++++++++++++++
- src/webui/api/serialize/serialize_torrent.h   |    1 
- 2 files changed, 109 insertions(+)
+ src/webui/api/serialize/serialize_torrent.cpp |  175 ++++++++++++++-----------
+ src/webui/api/serialize/serialize_torrent.h   |   72 ++++++++++
+ 2 files changed, 173 insertions(+), 74 deletions(-)
 
 diff --git a/src/webui/api/serialize/serialize_torrent.cpp b/src/webui/api/serialize/serialize_torrent.cpp
 index 000000..000000 100644
 --- a/src/webui/api/serialize/serialize_torrent.cpp
 +++ b/src/webui/api/serialize/serialize_torrent.cpp
-@@ -186,3 +186,111 @@ QVariantMap serialize(const BitTorrent::Torrent &torrent)
-         {KEY_TORRENT_COMMENT, torrent.comment()}
-     };
- }
-+
-+QVariantList serialize_array(const BitTorrent::Torrent &torrent, const QList<QString> &filters)
-+{
-+    // todo: re-use lambdas
-+    const auto adjustQueuePosition = [](const int position) -> int
-+    {
-+        return (position < 0) ? 0 : (position + 1);
-+    };
-+
-+    const auto adjustRatio = [](const qreal ratio) -> qreal
-+    {
-+        return (ratio >= BitTorrent::Torrent::MAX_RATIO) ? -1 : ratio;
-+    };
-+
-+    const auto getLastActivityTime = [&torrent]() -> qlonglong
-+    {
-+        const qlonglong timeSinceActivity = torrent.timeSinceActivity();
-+        return (timeSinceActivity < 0)
-+            ? Utils::DateTime::toSecsSinceEpoch(torrent.addedTime())
-+            : (QDateTime::currentSecsSinceEpoch() - timeSinceActivity);
-+    };
-+
-+
-+    const bool hasMetadata = torrent.hasMetadata();
-+    const BitTorrent::ShareLimits &shareLimits = torrent.shareLimits();
-+    const BitTorrent::ShareLimits effectiveShareLimits = torrent.effectiveShareLimits();
-+
-+    QVariantList result;
-+    for (const QString &filter : filters)
-+    {
-+        // \{([A-Z0-9_]+), (.*)+\},
-+        // if (filter == $1) { result.append($2); }
-+        if (filter == KEY_TORRENT_ID) { result.append(torrent.id().toString()); }
-+        if (filter == KEY_TORRENT_INFOHASHV1) { result.append(torrent.infoHash().v1().toString()); }
-+        if (filter == KEY_TORRENT_INFOHASHV2) { result.append(torrent.infoHash().v2().toString()); }
-+        if (filter == KEY_TORRENT_NAME) { result.append(torrent.name()); }
-+
-+        if (filter == KEY_TORRENT_HAS_METADATA) { result.append(hasMetadata); }
-+        if (filter == KEY_TORRENT_CREATED_BY) { result.append(torrent.creator()); }
-+        if (filter == KEY_TORRENT_CREATION_DATE) { result.append(Utils::DateTime::toSecsSinceEpoch(torrent.creationDate())); }
-+        if (filter == KEY_TORRENT_PRIVATE) { result.append((hasMetadata ? torrent.isPrivate() : QVariant())); }
-+        if (filter == KEY_TORRENT_TOTAL_SIZE) { result.append(torrent.totalSize()); }
-+        if (filter == KEY_TORRENT_PIECES_NUM) { result.append(torrent.piecesCount()); }
-+        if (filter == KEY_TORRENT_PIECE_SIZE) { result.append(torrent.pieceLength()); }
-+
-+        if (filter == KEY_TORRENT_MAGNET_URI) { result.append(torrent.createMagnetURI()); }
-+        if (filter == KEY_TORRENT_SIZE) { result.append(torrent.wantedSize()); }
-+        if (filter == KEY_TORRENT_PROGRESS) { result.append(torrent.progress()); }
-+        if (filter == KEY_TORRENT_TOTAL_WASTED) { result.append(torrent.wastedSize()); }
-+        if (filter == KEY_TORRENT_PIECES_HAVE) { result.append(torrent.piecesHave()); }
-+        if (filter == KEY_TORRENT_DLSPEED) { result.append(torrent.downloadPayloadRate()); }
-+        if (filter == KEY_TORRENT_UPSPEED) { result.append(torrent.uploadPayloadRate()); }
-+        if (filter == KEY_TORRENT_QUEUE_POSITION) { result.append(adjustQueuePosition(torrent.queuePosition())); }
-+        if (filter == KEY_TORRENT_SEEDS) { result.append(torrent.seedsCount()); }
-+        if (filter == KEY_TORRENT_NUM_COMPLETE) { result.append(torrent.totalSeedsCount()); }
-+        if (filter == KEY_TORRENT_LEECHS) { result.append(torrent.leechsCount()); }
-+        if (filter == KEY_TORRENT_NUM_INCOMPLETE) { result.append(torrent.totalLeechersCount()); }
-+
-+        if (filter == KEY_TORRENT_STATE) { result.append(torrentStateToString(torrent.state())); }
-+        if (filter == KEY_TORRENT_ERROR) { result.append(torrent.error()); }
-+        if (filter == KEY_TORRENT_ETA) { result.append(torrent.eta()); }
-+        if (filter == KEY_TORRENT_SEQUENTIAL_DOWNLOAD) { result.append(torrent.isSequentialDownload()); }
-+        if (filter == KEY_TORRENT_FIRST_LAST_PIECE_PRIO) { result.append(torrent.hasFirstLastPiecePriority()); }
-+
-+        if (filter == KEY_TORRENT_CATEGORY) { result.append(torrent.category()); }
-+        if (filter == KEY_TORRENT_TAGS) { result.append(Utils::String::joinIntoString(torrent.tags(), u", "_s)); }
-+        if (filter == KEY_TORRENT_SUPER_SEEDING) { result.append(torrent.superSeeding()); }
-+        if (filter == KEY_TORRENT_FORCE_START) { result.append(torrent.isForced()); }
-+        if (filter == KEY_TORRENT_SAVE_PATH) { result.append(torrent.savePath().toString()); }
-+        if (filter == KEY_TORRENT_DOWNLOAD_PATH) { result.append(torrent.downloadPath().toString()); }
-+        if (filter == KEY_TORRENT_CONTENT_PATH) { result.append(torrent.contentPath().toString()); }
-+        if (filter == KEY_TORRENT_ROOT_PATH) { result.append(torrent.rootPath().toString()); }
-+        if (filter == KEY_TORRENT_ADDED_ON) { result.append(Utils::DateTime::toSecsSinceEpoch(torrent.addedTime())); }
-+        if (filter == KEY_TORRENT_COMPLETION_ON) { result.append(Utils::DateTime::toSecsSinceEpoch(torrent.completedTime())); }
-+        if (filter == KEY_TORRENT_TRACKER) { result.append(torrent.currentTracker()); }
-+        if (filter == KEY_TORRENT_TRACKERS_COUNT) { result.append(torrent.trackers().size()); }
-+        if (filter == KEY_TORRENT_DL_LIMIT) { result.append(torrent.downloadLimit()); }
-+        if (filter == KEY_TORRENT_UP_LIMIT) { result.append(torrent.uploadLimit()); }
-+        if (filter == KEY_TORRENT_AMOUNT_DOWNLOADED) { result.append(torrent.totalDownload()); }
-+        if (filter == KEY_TORRENT_AMOUNT_UPLOADED) { result.append(torrent.totalUpload()); }
-+        if (filter == KEY_TORRENT_AMOUNT_DOWNLOADED_SESSION) { result.append(torrent.totalPayloadDownload()); }
-+        if (filter == KEY_TORRENT_AMOUNT_UPLOADED_SESSION) { result.append(torrent.totalPayloadUpload()); }
-+        if (filter == KEY_TORRENT_AMOUNT_LEFT) { result.append(torrent.remainingSize()); }
-+        if (filter == KEY_TORRENT_AMOUNT_COMPLETED) { result.append(torrent.completedSize()); }
-+        if (filter == KEY_TORRENT_CONNECTIONS_COUNT) { result.append(torrent.connectionsCount()); }
-+        if (filter == KEY_TORRENT_CONNECTIONS_LIMIT) { result.append(torrent.connectionsLimit()); }
-+        if (filter == KEY_TORRENT_MAX_RATIO) { result.append(effectiveShareLimits.ratioLimit); }
-+        if (filter == KEY_TORRENT_MAX_SEEDING_TIME) { result.append(effectiveShareLimits.seedingTimeLimit); }
-+        if (filter == KEY_TORRENT_MAX_INACTIVE_SEEDING_TIME) { result.append(effectiveShareLimits.inactiveSeedingTimeLimit); }
-+        if (filter == KEY_TORRENT_RATIO) { result.append(adjustRatio(torrent.realRatio())); }
-+        if (filter == KEY_TORRENT_RATIO_LIMIT) { result.append(shareLimits.ratioLimit); }
-+        if (filter == KEY_TORRENT_POPULARITY) { result.append(torrent.popularity()); }
-+        if (filter == KEY_TORRENT_SEEDING_TIME_LIMIT) { result.append(shareLimits.seedingTimeLimit); }
-+        if (filter == KEY_TORRENT_INACTIVE_SEEDING_TIME_LIMIT) { result.append(shareLimits.inactiveSeedingTimeLimit); }
-+        if (filter == KEY_TORRENT_SHARE_LIMITS_MODE) { result.append(Utils::String::fromEnum(shareLimits.mode)); }
-+        if (filter == KEY_TORRENT_SHARE_LIMIT_ACTION) { result.append(Utils::String::fromEnum(shareLimits.action)); }
-+        if (filter == KEY_TORRENT_LAST_SEEN_COMPLETE_TIME) { result.append(Utils::DateTime::toSecsSinceEpoch(torrent.lastSeenComplete())); }
-+        if (filter == KEY_TORRENT_AUTO_TORRENT_MANAGEMENT) { result.append(torrent.isAutoTMMEnabled()); }
-+        if (filter == KEY_TORRENT_TIME_ACTIVE) { result.append(torrent.activeTime()); }
-+        if (filter == KEY_TORRENT_SEEDING_TIME) { result.append(torrent.finishedTime()); }
-+        if (filter == KEY_TORRENT_LAST_ACTIVITY_TIME) { result.append(getLastActivityTime()); }
-+        if (filter == KEY_TORRENT_AVAILABILITY) { result.append(torrent.distributedCopies()); }
-+        if (filter == KEY_TORRENT_REANNOUNCE) { result.append(torrent.nextAnnounce()); }
-+        if (filter == KEY_TORRENT_COMMENT) { result.append(torrent.comment()); }
-+    }
-+
+@@ -89,6 +89,28 @@ namespace
+ 
+ QVariantMap serialize(const BitTorrent::Torrent &torrent)
+ {
++    QVariantMap result;
++    serialize_torrent_to(torrent, KEYS_TORRENT_ALL, [&](const QString& key, QVariant value) {
++        result.insert(key, value);
++    });
 +    return result;
 +}
++
++QVariantList serialize_array(const BitTorrent::Torrent &torrent, const QList<QString> &torrent_keys)
++{
++    QVariantList result;
++    result.reserve(torrent_keys.size());
++    serialize_torrent_to(torrent, torrent_keys, [&](const QString&, QVariant value) {
++        result.append(value);
++    });
++    return result;
++}
++
++void serialize_torrent_to(
++    const BitTorrent::Torrent &torrent,
++    const QList<QString> &torrent_keys,
++    const std::function<void(const QString&, QVariant)>& add_entry
++) {
+     const auto adjustQueuePosition = [](const int position) -> int
+     {
+         return (position < 0) ? 0 : (position + 1);
+@@ -111,78 +133,83 @@ QVariantMap serialize(const BitTorrent::Torrent &torrent)
+     const BitTorrent::ShareLimits &shareLimits = torrent.shareLimits();
+     const BitTorrent::ShareLimits effectiveShareLimits = torrent.effectiveShareLimits();
+ 
+-    return {
+-        {KEY_TORRENT_ID, torrent.id().toString()},
+-        {KEY_TORRENT_INFOHASHV1, torrent.infoHash().v1().toString()},
+-        {KEY_TORRENT_INFOHASHV2, torrent.infoHash().v2().toString()},
+-        {KEY_TORRENT_NAME, torrent.name()},
+-
+-        {KEY_TORRENT_HAS_METADATA, hasMetadata},
+-        {KEY_TORRENT_CREATED_BY, torrent.creator()},
+-        {KEY_TORRENT_CREATION_DATE, Utils::DateTime::toSecsSinceEpoch(torrent.creationDate())},
+-        {KEY_TORRENT_PRIVATE, (hasMetadata ? torrent.isPrivate() : QVariant())},
+-        {KEY_TORRENT_TOTAL_SIZE, torrent.totalSize()},
+-        {KEY_TORRENT_PIECES_NUM, torrent.piecesCount()},
+-        {KEY_TORRENT_PIECE_SIZE, torrent.pieceLength()},
+-
+-        {KEY_TORRENT_MAGNET_URI, torrent.createMagnetURI()},
+-        {KEY_TORRENT_SIZE, torrent.wantedSize()},
+-        {KEY_TORRENT_PROGRESS, torrent.progress()},
+-        {KEY_TORRENT_TOTAL_WASTED, torrent.wastedSize()},
+-        {KEY_TORRENT_PIECES_HAVE, torrent.piecesHave()},
+-        {KEY_TORRENT_DLSPEED, torrent.downloadPayloadRate()},
+-        {KEY_TORRENT_UPSPEED, torrent.uploadPayloadRate()},
+-        {KEY_TORRENT_QUEUE_POSITION, adjustQueuePosition(torrent.queuePosition())},
+-        {KEY_TORRENT_SEEDS, torrent.seedsCount()},
+-        {KEY_TORRENT_NUM_COMPLETE, torrent.totalSeedsCount()},
+-        {KEY_TORRENT_LEECHS, torrent.leechsCount()},
+-        {KEY_TORRENT_NUM_INCOMPLETE, torrent.totalLeechersCount()},
+-
+-        {KEY_TORRENT_STATE, torrentStateToString(torrent.state())},
+-        {KEY_TORRENT_ERROR, torrent.error()},
+-        {KEY_TORRENT_ETA, torrent.eta()},
+-        {KEY_TORRENT_SEQUENTIAL_DOWNLOAD, torrent.isSequentialDownload()},
+-        {KEY_TORRENT_FIRST_LAST_PIECE_PRIO, torrent.hasFirstLastPiecePriority()},
+-
+-        {KEY_TORRENT_CATEGORY, torrent.category()},
+-        {KEY_TORRENT_TAGS, Utils::String::joinIntoString(torrent.tags(), u", "_s)},
+-        {KEY_TORRENT_SUPER_SEEDING, torrent.superSeeding()},
+-        {KEY_TORRENT_FORCE_START, torrent.isForced()},
+-        {KEY_TORRENT_SAVE_PATH, torrent.savePath().toString()},
+-        {KEY_TORRENT_DOWNLOAD_PATH, torrent.downloadPath().toString()},
+-        {KEY_TORRENT_CONTENT_PATH, torrent.contentPath().toString()},
+-        {KEY_TORRENT_ROOT_PATH, torrent.rootPath().toString()},
+-        {KEY_TORRENT_ADDED_ON, Utils::DateTime::toSecsSinceEpoch(torrent.addedTime())},
+-        {KEY_TORRENT_COMPLETION_ON, Utils::DateTime::toSecsSinceEpoch(torrent.completedTime())},
+-        {KEY_TORRENT_TRACKER, torrent.currentTracker()},
+-        {KEY_TORRENT_TRACKERS_COUNT, torrent.trackers().size()},
+-        {KEY_TORRENT_DL_LIMIT, torrent.downloadLimit()},
+-        {KEY_TORRENT_UP_LIMIT, torrent.uploadLimit()},
+-        {KEY_TORRENT_AMOUNT_DOWNLOADED, torrent.totalDownload()},
+-        {KEY_TORRENT_AMOUNT_UPLOADED, torrent.totalUpload()},
+-        {KEY_TORRENT_AMOUNT_DOWNLOADED_SESSION, torrent.totalPayloadDownload()},
+-        {KEY_TORRENT_AMOUNT_UPLOADED_SESSION, torrent.totalPayloadUpload()},
+-        {KEY_TORRENT_AMOUNT_LEFT, torrent.remainingSize()},
+-        {KEY_TORRENT_AMOUNT_COMPLETED, torrent.completedSize()},
+-        {KEY_TORRENT_CONNECTIONS_COUNT, torrent.connectionsCount()},
+-        {KEY_TORRENT_CONNECTIONS_LIMIT, torrent.connectionsLimit()},
+-        {KEY_TORRENT_MAX_RATIO, effectiveShareLimits.ratioLimit},
+-        {KEY_TORRENT_MAX_SEEDING_TIME, effectiveShareLimits.seedingTimeLimit},
+-        {KEY_TORRENT_MAX_INACTIVE_SEEDING_TIME, effectiveShareLimits.inactiveSeedingTimeLimit},
+-        {KEY_TORRENT_RATIO, adjustRatio(torrent.realRatio())},
+-        {KEY_TORRENT_RATIO_LIMIT, shareLimits.ratioLimit},
+-        {KEY_TORRENT_POPULARITY, torrent.popularity()},
+-        {KEY_TORRENT_SEEDING_TIME_LIMIT, shareLimits.seedingTimeLimit},
+-        {KEY_TORRENT_INACTIVE_SEEDING_TIME_LIMIT, shareLimits.inactiveSeedingTimeLimit},
+-        {KEY_TORRENT_SHARE_LIMITS_MODE, Utils::String::fromEnum(shareLimits.mode)},
+-        {KEY_TORRENT_SHARE_LIMIT_ACTION, Utils::String::fromEnum(shareLimits.action)},
+-        {KEY_TORRENT_LAST_SEEN_COMPLETE_TIME, Utils::DateTime::toSecsSinceEpoch(torrent.lastSeenComplete())},
+-        {KEY_TORRENT_AUTO_TORRENT_MANAGEMENT, torrent.isAutoTMMEnabled()},
+-        {KEY_TORRENT_TIME_ACTIVE, torrent.activeTime()},
+-        {KEY_TORRENT_SEEDING_TIME, torrent.finishedTime()},
+-        {KEY_TORRENT_LAST_ACTIVITY_TIME, getLastActivityTime()},
+-        {KEY_TORRENT_AVAILABILITY, torrent.distributedCopies()},
+-        {KEY_TORRENT_REANNOUNCE, torrent.nextAnnounce()},
+-        {KEY_TORRENT_COMMENT, torrent.comment()}
+-    };
++    for (const QString &filter : torrent_keys)
++    {
++#define ENTRY(key, value) if (filter == key) { add_entry(key, QVariant(value)); } else
++        ENTRY(KEY_TORRENT_ID, torrent.id().toString())
++        ENTRY(KEY_TORRENT_INFOHASHV1, torrent.infoHash().v1().toString())
++        ENTRY(KEY_TORRENT_INFOHASHV2, torrent.infoHash().v2().toString())
++        ENTRY(KEY_TORRENT_NAME, torrent.name())
++
++        ENTRY(KEY_TORRENT_HAS_METADATA, hasMetadata)
++        ENTRY(KEY_TORRENT_CREATED_BY, torrent.creator())
++        ENTRY(KEY_TORRENT_CREATION_DATE, Utils::DateTime::toSecsSinceEpoch(torrent.creationDate()))
++        ENTRY(KEY_TORRENT_PRIVATE, (hasMetadata ? torrent.isPrivate() : QVariant()))
++        ENTRY(KEY_TORRENT_TOTAL_SIZE, torrent.totalSize())
++        ENTRY(KEY_TORRENT_PIECES_NUM, torrent.piecesCount())
++        ENTRY(KEY_TORRENT_PIECE_SIZE, torrent.pieceLength())
++
++        ENTRY(KEY_TORRENT_MAGNET_URI, torrent.createMagnetURI())
++        ENTRY(KEY_TORRENT_SIZE, torrent.wantedSize())
++        ENTRY(KEY_TORRENT_PROGRESS, torrent.progress())
++        ENTRY(KEY_TORRENT_TOTAL_WASTED, torrent.wastedSize())
++        ENTRY(KEY_TORRENT_PIECES_HAVE, torrent.piecesHave())
++        ENTRY(KEY_TORRENT_DLSPEED, torrent.downloadPayloadRate())
++        ENTRY(KEY_TORRENT_UPSPEED, torrent.uploadPayloadRate())
++        ENTRY(KEY_TORRENT_QUEUE_POSITION, adjustQueuePosition(torrent.queuePosition()))
++        ENTRY(KEY_TORRENT_SEEDS, torrent.seedsCount())
++        ENTRY(KEY_TORRENT_NUM_COMPLETE, torrent.totalSeedsCount())
++        ENTRY(KEY_TORRENT_LEECHS, torrent.leechsCount())
++        ENTRY(KEY_TORRENT_NUM_INCOMPLETE, torrent.totalLeechersCount())
++
++        ENTRY(KEY_TORRENT_STATE, torrentStateToString(torrent.state()))
++        ENTRY(KEY_TORRENT_ERROR, torrent.error())
++        ENTRY(KEY_TORRENT_ETA, torrent.eta())
++        ENTRY(KEY_TORRENT_SEQUENTIAL_DOWNLOAD, torrent.isSequentialDownload())
++        ENTRY(KEY_TORRENT_FIRST_LAST_PIECE_PRIO, torrent.hasFirstLastPiecePriority())
++
++        ENTRY(KEY_TORRENT_CATEGORY, torrent.category())
++        ENTRY(KEY_TORRENT_TAGS, Utils::String::joinIntoString(torrent.tags(), u", "_s))
++        ENTRY(KEY_TORRENT_SUPER_SEEDING, torrent.superSeeding())
++        ENTRY(KEY_TORRENT_FORCE_START, torrent.isForced())
++        ENTRY(KEY_TORRENT_SAVE_PATH, torrent.savePath().toString())
++        ENTRY(KEY_TORRENT_DOWNLOAD_PATH, torrent.downloadPath().toString())
++        ENTRY(KEY_TORRENT_CONTENT_PATH, torrent.contentPath().toString())
++        ENTRY(KEY_TORRENT_ROOT_PATH, torrent.rootPath().toString())
++        ENTRY(KEY_TORRENT_ADDED_ON, Utils::DateTime::toSecsSinceEpoch(torrent.addedTime()))
++        ENTRY(KEY_TORRENT_COMPLETION_ON, Utils::DateTime::toSecsSinceEpoch(torrent.completedTime()))
++        ENTRY(KEY_TORRENT_TRACKER, torrent.currentTracker())
++        ENTRY(KEY_TORRENT_TRACKERS_COUNT, torrent.trackers().size())
++        ENTRY(KEY_TORRENT_DL_LIMIT, torrent.downloadLimit())
++        ENTRY(KEY_TORRENT_UP_LIMIT, torrent.uploadLimit())
++        ENTRY(KEY_TORRENT_AMOUNT_DOWNLOADED, torrent.totalDownload())
++        ENTRY(KEY_TORRENT_AMOUNT_UPLOADED, torrent.totalUpload())
++        ENTRY(KEY_TORRENT_AMOUNT_DOWNLOADED_SESSION, torrent.totalPayloadDownload())
++        ENTRY(KEY_TORRENT_AMOUNT_UPLOADED_SESSION, torrent.totalPayloadUpload())
++        ENTRY(KEY_TORRENT_AMOUNT_LEFT, torrent.remainingSize())
++        ENTRY(KEY_TORRENT_AMOUNT_COMPLETED, torrent.completedSize())
++        ENTRY(KEY_TORRENT_CONNECTIONS_COUNT, torrent.connectionsCount())
++        ENTRY(KEY_TORRENT_CONNECTIONS_LIMIT, torrent.connectionsLimit())
++        ENTRY(KEY_TORRENT_MAX_RATIO, effectiveShareLimits.ratioLimit)
++        ENTRY(KEY_TORRENT_MAX_SEEDING_TIME, effectiveShareLimits.seedingTimeLimit)
++        ENTRY(KEY_TORRENT_MAX_INACTIVE_SEEDING_TIME, effectiveShareLimits.inactiveSeedingTimeLimit)
++        ENTRY(KEY_TORRENT_RATIO, adjustRatio(torrent.realRatio()))
++        ENTRY(KEY_TORRENT_RATIO_LIMIT, shareLimits.ratioLimit)
++        ENTRY(KEY_TORRENT_POPULARITY, torrent.popularity())
++        ENTRY(KEY_TORRENT_SEEDING_TIME_LIMIT, shareLimits.seedingTimeLimit)
++        ENTRY(KEY_TORRENT_INACTIVE_SEEDING_TIME_LIMIT, shareLimits.inactiveSeedingTimeLimit)
++        ENTRY(KEY_TORRENT_SHARE_LIMITS_MODE, Utils::String::fromEnum(shareLimits.mode))
++        ENTRY(KEY_TORRENT_SHARE_LIMIT_ACTION, Utils::String::fromEnum(shareLimits.action))
++        ENTRY(KEY_TORRENT_LAST_SEEN_COMPLETE_TIME, Utils::DateTime::toSecsSinceEpoch(torrent.lastSeenComplete()))
++        ENTRY(KEY_TORRENT_AUTO_TORRENT_MANAGEMENT, torrent.isAutoTMMEnabled())
++        ENTRY(KEY_TORRENT_TIME_ACTIVE, torrent.activeTime())
++        ENTRY(KEY_TORRENT_SEEDING_TIME, torrent.finishedTime())
++        ENTRY(KEY_TORRENT_LAST_ACTIVITY_TIME, getLastActivityTime())
++        ENTRY(KEY_TORRENT_AVAILABILITY, torrent.distributedCopies())
++        ENTRY(KEY_TORRENT_REANNOUNCE, torrent.nextAnnounce())
++        ENTRY(KEY_TORRENT_COMMENT, torrent.comment())
++        {} // else, ignore unknown keys
++#undef ENTRY
++    }
+ }
++
 diff --git a/src/webui/api/serialize/serialize_torrent.h b/src/webui/api/serialize/serialize_torrent.h
 index 000000..000000 100644
 --- a/src/webui/api/serialize/serialize_torrent.h
 +++ b/src/webui/api/serialize/serialize_torrent.h
-@@ -109,3 +109,4 @@ inline const QString KEY_TORRENT_CREATED_BY = u"created_by"_s;
+@@ -108,4 +108,76 @@ inline const QString KEY_TORRENT_PIECES_HAVE = u"pieces_have"_s;
+ inline const QString KEY_TORRENT_CREATED_BY = u"created_by"_s;
  inline const QString KEY_TORRENT_CREATION_DATE = u"creation_date"_s;
  
++inline const QList<QString> KEYS_TORRENT_ALL = {
++    KEY_TORRENT_ID,
++    KEY_TORRENT_INFOHASHV1,
++    KEY_TORRENT_INFOHASHV2,
++    KEY_TORRENT_NAME,
++    KEY_TORRENT_HAS_METADATA,
++    KEY_TORRENT_CREATED_BY,
++    KEY_TORRENT_CREATION_DATE,
++    KEY_TORRENT_PRIVATE,
++    KEY_TORRENT_TOTAL_SIZE,
++    KEY_TORRENT_PIECES_NUM,
++    KEY_TORRENT_PIECE_SIZE,
++    KEY_TORRENT_MAGNET_URI,
++    KEY_TORRENT_SIZE,
++    KEY_TORRENT_PROGRESS,
++    KEY_TORRENT_TOTAL_WASTED,
++    KEY_TORRENT_PIECES_HAVE,
++    KEY_TORRENT_DLSPEED,
++    KEY_TORRENT_UPSPEED,
++    KEY_TORRENT_QUEUE_POSITION,
++    KEY_TORRENT_SEEDS,
++    KEY_TORRENT_NUM_COMPLETE,
++    KEY_TORRENT_LEECHS,
++    KEY_TORRENT_NUM_INCOMPLETE,
++    KEY_TORRENT_STATE,
++    KEY_TORRENT_ERROR,
++    KEY_TORRENT_ETA,
++    KEY_TORRENT_SEQUENTIAL_DOWNLOAD,
++    KEY_TORRENT_FIRST_LAST_PIECE_PRIO,
++    KEY_TORRENT_CATEGORY,
++    KEY_TORRENT_TAGS,
++    KEY_TORRENT_SUPER_SEEDING,
++    KEY_TORRENT_FORCE_START,
++    KEY_TORRENT_SAVE_PATH,
++    KEY_TORRENT_DOWNLOAD_PATH,
++    KEY_TORRENT_CONTENT_PATH,
++    KEY_TORRENT_ROOT_PATH,
++    KEY_TORRENT_ADDED_ON,
++    KEY_TORRENT_COMPLETION_ON,
++    KEY_TORRENT_TRACKER,
++    KEY_TORRENT_TRACKERS_COUNT,
++    KEY_TORRENT_DL_LIMIT,
++    KEY_TORRENT_UP_LIMIT,
++    KEY_TORRENT_AMOUNT_DOWNLOADED,
++    KEY_TORRENT_AMOUNT_UPLOADED,
++    KEY_TORRENT_AMOUNT_DOWNLOADED_SESSION,
++    KEY_TORRENT_AMOUNT_UPLOADED_SESSION,
++    KEY_TORRENT_AMOUNT_LEFT,
++    KEY_TORRENT_AMOUNT_COMPLETED,
++    KEY_TORRENT_CONNECTIONS_COUNT,
++    KEY_TORRENT_CONNECTIONS_LIMIT,
++    KEY_TORRENT_MAX_RATIO,
++    KEY_TORRENT_MAX_SEEDING_TIME,
++    KEY_TORRENT_MAX_INACTIVE_SEEDING_TIME,
++    KEY_TORRENT_RATIO,
++    KEY_TORRENT_RATIO_LIMIT,
++    KEY_TORRENT_POPULARITY,
++    KEY_TORRENT_SEEDING_TIME_LIMIT,
++    KEY_TORRENT_INACTIVE_SEEDING_TIME_LIMIT,
++    KEY_TORRENT_SHARE_LIMITS_MODE,
++    KEY_TORRENT_SHARE_LIMIT_ACTION,
++    KEY_TORRENT_LAST_SEEN_COMPLETE_TIME,
++    KEY_TORRENT_AUTO_TORRENT_MANAGEMENT,
++    KEY_TORRENT_TIME_ACTIVE,
++    KEY_TORRENT_SEEDING_TIME,
++    KEY_TORRENT_LAST_ACTIVITY_TIME,
++    KEY_TORRENT_AVAILABILITY,
++    KEY_TORRENT_REANNOUNCE,
++    KEY_TORRENT_COMMENT,
++};
++
  QVariantMap serialize(const BitTorrent::Torrent &torrent);
 +QVariantList serialize_array(const BitTorrent::Torrent &torrent, const QList<QString> &fields);
