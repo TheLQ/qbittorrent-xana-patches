@@ -85,8 +85,12 @@ qb-import-from-git patch fromdir commit:
 
 qb-export:
     rm -r work-qbexport || true
+    # '--diff-opt=--anchored' 
+    # '--diff-opt=--patience'
+    # '--diff-opt=--histogram' 
     cd work-qbittorrent && stg export \
         --dir ../work-qbexport \
+        '--diff-opt=--minimal' \
         --patch
     mv work-qbexport/*.patch .
     mv work-qbexport/series qbittorrent.series

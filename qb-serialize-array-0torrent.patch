@@ -4,9 +4,9 @@ From: Leon Blakey <code@leonblakey.com>
 
 
 ---
- src/webui/api/serialize/serialize_torrent.cpp |  175 ++++++++++++++-----------
- src/webui/api/serialize/serialize_torrent.h   |   72 ++++++++++
- 2 files changed, 173 insertions(+), 74 deletions(-)
+ src/webui/api/serialize/serialize_torrent.cpp |  167 +++++++++++++++----------
+ src/webui/api/serialize/serialize_torrent.h   |   72 +++++++++++
+ 2 files changed, 169 insertions(+), 70 deletions(-)
 
 diff --git a/src/webui/api/serialize/serialize_torrent.cpp b/src/webui/api/serialize/serialize_torrent.cpp
 index 000000..000000 100644
@@ -50,7 +50,14 @@ index 000000..000000 100644
 -        {KEY_TORRENT_INFOHASHV1, torrent.infoHash().v1().toString()},
 -        {KEY_TORRENT_INFOHASHV2, torrent.infoHash().v2().toString()},
 -        {KEY_TORRENT_NAME, torrent.name()},
--
++    for (const QString &filter : torrent_keys)
++    {
++#define ENTRY(key, value) if (filter == key) { add_entry(key, QVariant(value)); } else
++        ENTRY(KEY_TORRENT_ID, torrent.id().toString())
++        ENTRY(KEY_TORRENT_INFOHASHV1, torrent.infoHash().v1().toString())
++        ENTRY(KEY_TORRENT_INFOHASHV2, torrent.infoHash().v2().toString())
++        ENTRY(KEY_TORRENT_NAME, torrent.name())
+ 
 -        {KEY_TORRENT_HAS_METADATA, hasMetadata},
 -        {KEY_TORRENT_CREATED_BY, torrent.creator()},
 -        {KEY_TORRENT_CREATION_DATE, Utils::DateTime::toSecsSinceEpoch(torrent.creationDate())},
@@ -58,7 +65,14 @@ index 000000..000000 100644
 -        {KEY_TORRENT_TOTAL_SIZE, torrent.totalSize()},
 -        {KEY_TORRENT_PIECES_NUM, torrent.piecesCount()},
 -        {KEY_TORRENT_PIECE_SIZE, torrent.pieceLength()},
--
++        ENTRY(KEY_TORRENT_HAS_METADATA, hasMetadata)
++        ENTRY(KEY_TORRENT_CREATED_BY, torrent.creator())
++        ENTRY(KEY_TORRENT_CREATION_DATE, Utils::DateTime::toSecsSinceEpoch(torrent.creationDate()))
++        ENTRY(KEY_TORRENT_PRIVATE, (hasMetadata ? torrent.isPrivate() : QVariant()))
++        ENTRY(KEY_TORRENT_TOTAL_SIZE, torrent.totalSize())
++        ENTRY(KEY_TORRENT_PIECES_NUM, torrent.piecesCount())
++        ENTRY(KEY_TORRENT_PIECE_SIZE, torrent.pieceLength())
+ 
 -        {KEY_TORRENT_MAGNET_URI, torrent.createMagnetURI()},
 -        {KEY_TORRENT_SIZE, torrent.wantedSize()},
 -        {KEY_TORRENT_PROGRESS, torrent.progress()},
@@ -71,13 +85,30 @@ index 000000..000000 100644
 -        {KEY_TORRENT_NUM_COMPLETE, torrent.totalSeedsCount()},
 -        {KEY_TORRENT_LEECHS, torrent.leechsCount()},
 -        {KEY_TORRENT_NUM_INCOMPLETE, torrent.totalLeechersCount()},
--
++        ENTRY(KEY_TORRENT_MAGNET_URI, torrent.createMagnetURI())
++        ENTRY(KEY_TORRENT_SIZE, torrent.wantedSize())
++        ENTRY(KEY_TORRENT_PROGRESS, torrent.progress())
++        ENTRY(KEY_TORRENT_TOTAL_WASTED, torrent.wastedSize())
++        ENTRY(KEY_TORRENT_PIECES_HAVE, torrent.piecesHave())
++        ENTRY(KEY_TORRENT_DLSPEED, torrent.downloadPayloadRate())
++        ENTRY(KEY_TORRENT_UPSPEED, torrent.uploadPayloadRate())
++        ENTRY(KEY_TORRENT_QUEUE_POSITION, adjustQueuePosition(torrent.queuePosition()))
++        ENTRY(KEY_TORRENT_SEEDS, torrent.seedsCount())
++        ENTRY(KEY_TORRENT_NUM_COMPLETE, torrent.totalSeedsCount())
++        ENTRY(KEY_TORRENT_LEECHS, torrent.leechsCount())
++        ENTRY(KEY_TORRENT_NUM_INCOMPLETE, torrent.totalLeechersCount())
+ 
 -        {KEY_TORRENT_STATE, torrentStateToString(torrent.state())},
 -        {KEY_TORRENT_ERROR, torrent.error()},
 -        {KEY_TORRENT_ETA, torrent.eta()},
 -        {KEY_TORRENT_SEQUENTIAL_DOWNLOAD, torrent.isSequentialDownload()},
 -        {KEY_TORRENT_FIRST_LAST_PIECE_PRIO, torrent.hasFirstLastPiecePriority()},
--
++        ENTRY(KEY_TORRENT_STATE, torrentStateToString(torrent.state()))
++        ENTRY(KEY_TORRENT_ERROR, torrent.error())
++        ENTRY(KEY_TORRENT_ETA, torrent.eta())
++        ENTRY(KEY_TORRENT_SEQUENTIAL_DOWNLOAD, torrent.isSequentialDownload())
++        ENTRY(KEY_TORRENT_FIRST_LAST_PIECE_PRIO, torrent.hasFirstLastPiecePriority())
+ 
 -        {KEY_TORRENT_CATEGORY, torrent.category()},
 -        {KEY_TORRENT_TAGS, Utils::String::joinIntoString(torrent.tags(), u", "_s)},
 -        {KEY_TORRENT_SUPER_SEEDING, torrent.superSeeding()},
@@ -119,41 +150,6 @@ index 000000..000000 100644
 -        {KEY_TORRENT_REANNOUNCE, torrent.nextAnnounce()},
 -        {KEY_TORRENT_COMMENT, torrent.comment()}
 -    };
-+    for (const QString &filter : torrent_keys)
-+    {
-+#define ENTRY(key, value) if (filter == key) { add_entry(key, QVariant(value)); } else
-+        ENTRY(KEY_TORRENT_ID, torrent.id().toString())
-+        ENTRY(KEY_TORRENT_INFOHASHV1, torrent.infoHash().v1().toString())
-+        ENTRY(KEY_TORRENT_INFOHASHV2, torrent.infoHash().v2().toString())
-+        ENTRY(KEY_TORRENT_NAME, torrent.name())
-+
-+        ENTRY(KEY_TORRENT_HAS_METADATA, hasMetadata)
-+        ENTRY(KEY_TORRENT_CREATED_BY, torrent.creator())
-+        ENTRY(KEY_TORRENT_CREATION_DATE, Utils::DateTime::toSecsSinceEpoch(torrent.creationDate()))
-+        ENTRY(KEY_TORRENT_PRIVATE, (hasMetadata ? torrent.isPrivate() : QVariant()))
-+        ENTRY(KEY_TORRENT_TOTAL_SIZE, torrent.totalSize())
-+        ENTRY(KEY_TORRENT_PIECES_NUM, torrent.piecesCount())
-+        ENTRY(KEY_TORRENT_PIECE_SIZE, torrent.pieceLength())
-+
-+        ENTRY(KEY_TORRENT_MAGNET_URI, torrent.createMagnetURI())
-+        ENTRY(KEY_TORRENT_SIZE, torrent.wantedSize())
-+        ENTRY(KEY_TORRENT_PROGRESS, torrent.progress())
-+        ENTRY(KEY_TORRENT_TOTAL_WASTED, torrent.wastedSize())
-+        ENTRY(KEY_TORRENT_PIECES_HAVE, torrent.piecesHave())
-+        ENTRY(KEY_TORRENT_DLSPEED, torrent.downloadPayloadRate())
-+        ENTRY(KEY_TORRENT_UPSPEED, torrent.uploadPayloadRate())
-+        ENTRY(KEY_TORRENT_QUEUE_POSITION, adjustQueuePosition(torrent.queuePosition()))
-+        ENTRY(KEY_TORRENT_SEEDS, torrent.seedsCount())
-+        ENTRY(KEY_TORRENT_NUM_COMPLETE, torrent.totalSeedsCount())
-+        ENTRY(KEY_TORRENT_LEECHS, torrent.leechsCount())
-+        ENTRY(KEY_TORRENT_NUM_INCOMPLETE, torrent.totalLeechersCount())
-+
-+        ENTRY(KEY_TORRENT_STATE, torrentStateToString(torrent.state()))
-+        ENTRY(KEY_TORRENT_ERROR, torrent.error())
-+        ENTRY(KEY_TORRENT_ETA, torrent.eta())
-+        ENTRY(KEY_TORRENT_SEQUENTIAL_DOWNLOAD, torrent.isSequentialDownload())
-+        ENTRY(KEY_TORRENT_FIRST_LAST_PIECE_PRIO, torrent.hasFirstLastPiecePriority())
-+
 +        ENTRY(KEY_TORRENT_CATEGORY, torrent.category())
 +        ENTRY(KEY_TORRENT_TAGS, Utils::String::joinIntoString(torrent.tags(), u", "_s))
 +        ENTRY(KEY_TORRENT_SUPER_SEEDING, torrent.superSeeding())
