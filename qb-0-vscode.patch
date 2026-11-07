@@ -4,8 +4,8 @@ From: Leon Blakey <code@leonblakey.com>
 
 
 ---
- cmake-variants.yaml |   11 +++++++++++
- 1 file changed, 11 insertions(+)
+ cmake-variants.yaml |    9 +++++++++
+ 1 file changed, 9 insertions(+)
  create mode 100644 cmake-variants.yaml
 
 diff --git a/cmake-variants.yaml b/cmake-variants.yaml
@@ -13,15 +13,13 @@ new file mode 100644
 index 000000..000000
 --- /dev/null
 +++ b/cmake-variants.yaml
-@@ -0,0 +1,11 @@
+@@ -0,0 +1,9 @@
 +buildxanaqb:
 +  default: buildxanaqbc
 +  choices:
 +    buildxanaqbc:
 +      short: buildxana-qb-c
 +      buildType: RelWithDebInfo
-+      env:
-+        LD_LIBRARY_PATH: ${workspaceFolder}/../work-libtorrent/build
 +      settings:
 +        GUI: OFF
 +        LibtorrentRasterbar_DIR: ${workspaceFolder}/../work-libtorrent/build/LibtorrentRasterbar
